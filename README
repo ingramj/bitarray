@@ -8,15 +8,15 @@ comparison with Peter Cooper's pure Ruby BitField class.
 This extension has only been tested with Ruby 1.9.1 on Ubuntu, and probably
 won't compile for Ruby 1.8. Compatibility with Ruby 1.8 is planned.
 
-There isn't a gem package yet, but you can build the extension manually:
+This library is available as a gem. Install it with
 
-    ruby extconf.rb
-    make
+sudo gem install ingramj-bitarray -s http://gems.github.com
 
-That will give you bitarray.so in the current directory. Then you can probably
-run "make install", or just copy the bitarray.so file wherever you need it.
+Alternately, you can clone the repository and build things manually.
 
 See the TODO file for current limitations and plans.
+
+See the LICENSE file for copyright and license information.
 
 Some inspiration was taken from Peter Cooper's BitField class, and various Open
 Source bitarray implementations found online, but this implementation contains
@@ -25,28 +25,4 @@ BitField class, and test/test.rb, which was modified from the BitField test
 code.
 
 BitField: http://snippets.dzone.com/posts/show/4234
-
-
-Copyright (c) 2009 James E. Ingram
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
 
