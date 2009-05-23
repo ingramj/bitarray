@@ -104,8 +104,12 @@ get_bit(struct bit_array *ba, ptrdiff_t bit)
         return -1;
     }
 
-    int b = (ba->array[bit / UINT_BITS] & bitmask(bit));
-    return (b >> (bit % UINT_BITS));
+    unsigned int b = (ba->array[bit / UINT_BITS] & bitmask(bit));
+    if (b > 0) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 
@@ -140,7 +144,7 @@ rb_bitarray_initialize(VALUE self, VALUE size)
     Data_Get_Struct(self, struct bit_array, ba);
 
     size_t bits = NUM2SIZET(size);
-    size_t array_size = (bits - 1) / UINT_BITS + 1;
+    size_t array_size = ((bits - 1) / UINT_BITS) + 1;
 
     ba->bits = bits;
     ba->array_size = array_size;
@@ -230,7 +234,7 @@ rb_bitarray_get_bit(VALUE self, VALUE bit)
 
     int bit_value = get_bit(ba, index);
 
-    if (bit_value != -1) {
+    if (bit_value >= 0) {
         return INT2NUM(bit_value);
     } else {
         rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
