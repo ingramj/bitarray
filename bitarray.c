@@ -80,14 +80,14 @@ toggle_bit(struct bit_array *ba, size_t bit)
 
 /* Assign the specified value to a bit. Return 1 on success, 0 on failure. */
 static int
-assign_bit(struct bit_array *ba, size_t bit, unsigned int value)
+assign_bit(struct bit_array *ba, size_t bit, int value)
 {
     if (value == 0) {
         return clear_bit(ba, bit);
     } else if (value == 1) {
         return set_bit(ba, bit);
     } else {
-        return 0;
+        return -1;
     }
 }
 
@@ -162,13 +162,15 @@ rb_bitarray_set_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    size_t index = NUM2SIZET(bit);
+    long index = NUM2LONG(bit);
+    if (index < 0) {
+        index += ba->bits;
+    }
 
     if (set_bit(ba, index)) {
         return self;
     } else {
-        rb_raise(rb_eIndexError, "index %lu out of bit array",
-                (unsigned long)index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
     }
 }
 
@@ -193,13 +195,15 @@ rb_bitarray_clear_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    size_t index = NUM2SIZET(bit);
+    long index = NUM2LONG(bit);
+    if (index < 0) {
+        index += ba->bits;
+    }
 
     if (clear_bit(ba, index)) {
         return self;
     } else {
-        rb_raise(rb_eIndexError, "index %lu out of bit array",
-                (unsigned long)index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
     }
 }
 
@@ -224,14 +228,41 @@ rb_bitarray_get_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    size_t index = NUM2SIZET(bit);
+    long index = NUM2LONG(bit);
+    if (index < 0) {
+        index += ba->bits;
+    }
+
     int bit_value = get_bit(ba, index);
 
     if (bit_value != -1) {
         return INT2NUM(bit_value);
     } else {
-        rb_raise(rb_eIndexError, "index %lu out of bit array",
-                (unsigned long)index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
+    }
+}
+
+
+static VALUE
+rb_bitarray_assign_bit(VALUE self, VALUE bit, VALUE value)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    long index = NUM2LONG(bit);
+    if (index < 0) {
+        index += ba->bits;
+    }
+
+    int bit_value = NUM2INT(value);
+
+    int result = assign_bit(ba, index, bit_value);
+    if (result == 1) {
+        return self;
+    } else if (result == 0) {
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
+    } else {
+        rb_raise(rb_eRuntimeError, "bit value %d out of range", bit_value);
     }
 }
 
@@ -294,6 +325,7 @@ Init_bitarray()
     rb_define_method(rb_bitarray_class, "clear_all_bits",
             rb_bitarray_clear_all_bits, 0);
     rb_define_method(rb_bitarray_class, "[]", rb_bitarray_get_bit, 1);
+    rb_define_method(rb_bitarray_class, "[]=", rb_bitarray_assign_bit, 2);
     rb_define_method(rb_bitarray_class, "inspect", rb_bitarray_inspect, 0);
     rb_define_method(rb_bitarray_class, "each", rb_bitarray_each, 0);
 
