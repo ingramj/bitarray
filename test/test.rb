@@ -70,6 +70,14 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba.clear_all_bits
     assert_equal "0000000000", ba.to_s
   end
+
+  def test_clone
+    ba = BitArray.new(10)
+    ba[1] = 1
+    ba[5] = 1
+    ba_clone = ba.clone
+    assert_equal ba_clone.to_s, ba.to_s
+  end
   
   # This method is not implemented yet.
 

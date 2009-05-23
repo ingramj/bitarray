@@ -156,6 +156,25 @@ rb_bitarray_initialize(VALUE self, VALUE size)
 
 
 static VALUE
+rb_bitarray_clone(VALUE self)
+{
+    struct bit_array *ba, *new_ba;
+    VALUE rb_new_ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+    rb_new_ba = Data_Make_Struct(rb_bitarray_class, struct bit_array, NULL,
+            rb_bitarray_free, new_ba);
+
+    new_ba->bits = ba->bits;
+    new_ba->array_size = ba->array_size;
+    new_ba->array = ruby_xcalloc(new_ba->array_size, UINT_BYTES);
+
+    memcpy(new_ba->array, ba->array, (ba->array_size * UINT_BYTES));
+
+    return rb_new_ba;
+}
+
+
+static VALUE
 rb_bitarray_size(VALUE self)
 {
     struct bit_array *ba;
@@ -309,6 +328,7 @@ Init_bitarray()
 
     rb_define_method(rb_bitarray_class, "initialize",
             rb_bitarray_initialize, 1);
+    rb_define_method(rb_bitarray_class, "clone", rb_bitarray_clone, 0);
     rb_define_method(rb_bitarray_class, "size", rb_bitarray_size, 0);
     rb_define_alias(rb_bitarray_class, "length", "size");
     rb_define_method(rb_bitarray_class, "set_bit", rb_bitarray_set_bit, 1);
