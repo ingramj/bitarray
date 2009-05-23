@@ -138,6 +138,11 @@ rb_bitarray_alloc(VALUE klass)
 }
 
 
+/* call-seq:
+ *      BitArray.new(size)
+ *
+ * Return a new BitArray or the specified size.
+ */
 static VALUE
 rb_bitarray_initialize(VALUE self, VALUE size)
 {
@@ -155,6 +160,12 @@ rb_bitarray_initialize(VALUE self, VALUE size)
 }
 
 
+/* call-seq:
+ *      bitarray.clone          -> a_bitarray
+ *      bitarray.dup            -> a_bitarray
+ *
+ * Produces a copy of _bitarray_.
+ */
 static VALUE
 rb_bitarray_clone(VALUE self)
 {
@@ -174,6 +185,12 @@ rb_bitarray_clone(VALUE self)
 }
 
 
+/* call-seq:
+ *      bitarray.size           -> int
+ *      bitarray.length         -> int
+ *
+ * Returns the number of bits in _bitarray_.
+ */
 static VALUE
 rb_bitarray_size(VALUE self)
 {
@@ -184,6 +201,13 @@ rb_bitarray_size(VALUE self)
 }
 
 
+/* call-seq:
+ *      bitarray.set_bit(index)       -> bitarray
+ *
+ * Sets the bit at _index_ to 1. Negative indices count backwards from the end
+ * of _bitarray_. If _index_ is greater than the capacity of _bitarray_, an
+ * +IndexError+ is raised.
+ */
 static VALUE
 rb_bitarray_set_bit(VALUE self, VALUE bit)
 {
@@ -200,6 +224,11 @@ rb_bitarray_set_bit(VALUE self, VALUE bit)
 }
 
 
+/* call-seq:
+ *      bitarray.set_all_bits           -> bitarray
+ *
+ * Sets all bits to 1.
+ */
 static VALUE
 rb_bitarray_set_all_bits(VALUE self)
 {
@@ -214,6 +243,13 @@ rb_bitarray_set_all_bits(VALUE self)
 }
 
 
+/* call-seq:
+ *      bitarray.clear_bit(index)       -> bitarray
+ *
+ * Sets the bit at _index_ to 0. Negative indices count backwards from the end
+ * of _bitarray_. If _index_ is greater than the capacity of _bitarray_, an
+ * +IndexError+ is raised.
+ */
 static VALUE
 rb_bitarray_clear_bit(VALUE self, VALUE bit)
 {
@@ -230,6 +266,11 @@ rb_bitarray_clear_bit(VALUE self, VALUE bit)
 }
 
 
+/* call-seq:
+ *      bitarray.clear_all_bits         -> bitarray
+ *
+ * Sets all bits to 0.
+ */
 static VALUE
 rb_bitarray_clear_all_bits(VALUE self)
 {
@@ -244,6 +285,13 @@ rb_bitarray_clear_all_bits(VALUE self)
 }
 
 
+/* call-seq:
+ *      bitarray[index]         -> value
+ *
+ * Bit Reference---Returns the bit at _index_. Negative indices count backwards
+ * from the end of _bitarray_. If _index_ is greater than the capacity of
+ * _bitarray_, an +IndexError+ is raised.
+ */
 static VALUE
 rb_bitarray_get_bit(VALUE self, VALUE bit)
 {
@@ -262,6 +310,16 @@ rb_bitarray_get_bit(VALUE self, VALUE bit)
 }
 
 
+/* call-seq:
+ *      bitarray[index] = value     -> value
+ *
+ * Bit Assignment---Sets the bit at _index_. _value_ must be 0 or 1. Negative
+ * indices are allowed, and will count backwards from the end of _bitarray_.
+ *
+ * If _index_ is greater than the capacity of _bitarray_, an +IndexError+ is
+ * raised. If _value_ is something other than 0 or 1, a +RuntimeError+ is
+ * raised.
+ */
 static VALUE
 rb_bitarray_assign_bit(VALUE self, VALUE bit, VALUE value)
 {
@@ -273,7 +331,7 @@ rb_bitarray_assign_bit(VALUE self, VALUE bit, VALUE value)
 
     int result = assign_bit(ba, index, bit_value);
     if (result == 1) {
-        return self;
+        return value;
     } else if (result == 0) {
         rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
     } else {
@@ -282,6 +340,12 @@ rb_bitarray_assign_bit(VALUE self, VALUE bit, VALUE value)
 }
 
 
+/* call-seq:
+ *      bitarray.inspect        -> string
+ *      bitarray.to_s           -> string
+ *
+ * Create a printable version of _bitarray_.
+ */
 static VALUE
 rb_bitarray_inspect(VALUE self)
 {
@@ -302,6 +366,19 @@ rb_bitarray_inspect(VALUE self)
 }
 
 
+/* call-seq:
+ *      bitarray.each {|bit| block }        -> bitarray
+ *
+ * Calls +block+ once for each bit in _bitarray_, passing that bit as a
+ * parameter.
+ *
+ *      ba = BitArray.new(10)
+ *      ba.each {|bit| print bit, " " }
+ *
+ * produces:
+ *
+ *      0 0 0 0 0 0 0 0 0 0
+ */
 static VALUE
 rb_bitarray_each(VALUE self)
 {
@@ -319,6 +396,11 @@ rb_bitarray_each(VALUE self)
 }
 
 
+/* Document-class: BitArray
+ *
+ * An array of bits. Usage is similar to the standard Array class, but the only
+ * allowed elements are 1 and 0. BitArrays are not resizable.
+ */
 void
 Init_bitarray()
 {
@@ -327,7 +409,12 @@ Init_bitarray()
 
     rb_define_method(rb_bitarray_class, "initialize",
             rb_bitarray_initialize, 1);
+    
+    /* TODO: apparently, we need to define an #initialize_copy method instead
+     * of clone.
+     */
     rb_define_method(rb_bitarray_class, "clone", rb_bitarray_clone, 0);
+    rb_define_alias(rb_bitarray_class, "dup", "clone");
     rb_define_method(rb_bitarray_class, "size", rb_bitarray_size, 0);
     rb_define_alias(rb_bitarray_class, "length", "size");
     rb_define_method(rb_bitarray_class, "set_bit", rb_bitarray_set_bit, 1);
