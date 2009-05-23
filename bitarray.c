@@ -100,8 +100,8 @@ get_bit(struct bit_array *ba, size_t bit)
         return -1;
     }
 
-    unsigned int b = ba->array[bit / UINT_BITS] & bitmask(bit);
-    return b >> (bit % UINT_BITS);
+    int b = (ba->array[bit / UINT_BITS] & bitmask(bit));
+    return (b >> (bit % UINT_BITS));
 }
 
 
@@ -219,6 +219,24 @@ rb_bitarray_clear_all_bits(VALUE self)
 
 
 static VALUE
+rb_bitarray_get_bit(VALUE self, VALUE bit)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    size_t index = NUM2SIZET(bit);
+    int bit_value = get_bit(ba, index);
+
+    if (bit_value != -1) {
+        return INT2NUM(bit_value);
+    } else {
+        rb_raise(rb_eIndexError, "index %lu out of bit array",
+                (unsigned long)index);
+    }
+}
+
+
+static VALUE
 rb_bitarray_inspect(VALUE self)
 {
     struct bit_array *ba;
@@ -241,6 +259,24 @@ rb_bitarray_inspect(VALUE self)
 }
 
 
+static VALUE
+rb_bitarray_each(VALUE self)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    size_t i;
+
+    /* TODO: This was taken from array.c Figure out how it works. */
+    RETURN_ENUMERATOR(self, 0, 0);
+    for (i = 0; i < ba->bits; i++) {
+        int bit_value = get_bit(ba, i);
+        rb_yield(INT2NUM(bit_value));
+    }
+    return self;
+}
+
+
 void
 Init_bitarray()
 {
@@ -257,6 +293,10 @@ Init_bitarray()
     rb_define_method(rb_bitarray_class, "clear_bit", rb_bitarray_clear_bit, 1);
     rb_define_method(rb_bitarray_class, "clear_all_bits",
             rb_bitarray_clear_all_bits, 0);
+    rb_define_method(rb_bitarray_class, "[]", rb_bitarray_get_bit, 1);
     rb_define_method(rb_bitarray_class, "inspect", rb_bitarray_inspect, 0);
+    rb_define_method(rb_bitarray_class, "each", rb_bitarray_each, 0);
+
+    rb_include_module(rb_bitarray_class, rb_mEnumerable);
 }
 
