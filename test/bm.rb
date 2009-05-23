@@ -5,7 +5,7 @@ require 'benchmark'
 Benchmark.bm(20) { |bm|
   puts "-------------------- Object instantiation."
   bm.report("BitField initialize") { 10000.times { BitField.new(256) } }
-  bm.report("BitArray initializa") { 10000.times { BitArray.new(256) } }
+  bm.report("BitArray initialize") { 10000.times { BitArray.new(256) } }
 
   bf = BitField.new(256)
   ba = BitArray.new(256)
