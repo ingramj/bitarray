@@ -2,7 +2,7 @@ require 'bitfield'
 require 'bitarray'
 require 'benchmark'
 
-Benchmark.bm(20) { |bm|
+Benchmark.bm(24) { |bm|
   puts "-------------------- Object instantiation."
   bm.report("BitField initialize") { 10000.times { BitField.new(256) } }
   bm.report("BitArray initialize") { 10000.times { BitArray.new(256) } }
@@ -22,8 +22,14 @@ Benchmark.bm(20) { |bm|
   bm.report("BitField each")       { 10000.times { bf.each {|b| b } } }
   bm.report("BitArray each")       { 10000.times { ba.each {|b| b } } }
 
-  puts "------------------- To String"
+  puts "-------------------- To String"
   bm.report("BitField to_s")       { 10000.times { bf.to_s } }
   bm.report("BitArray to_s")       { 10000.times { ba.to_s } }
+
+  puts "-------------------- Set All"
+  bm.report("BitArray set_all_bits")    { 10000.times { ba.set_all_bits} }
+
+  puts "-------------------- Clear All"
+  bm.report("BitArray clear_all_bits")  { 10000.times { ba.clear_all_bits } }
 }
 

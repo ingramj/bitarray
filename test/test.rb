@@ -55,6 +55,21 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba[5] = 1
     assert_equal "0100010000", ba.to_s
   end
+
+
+  def test_set_all_bits
+    ba = BitArray.new(10)
+    ba.set_all_bits
+    assert_equal "1111111111", ba.to_s
+  end
+
+  def test_clear_all_bits
+    ba = BitArray.new(10)
+    ba[1] = 1
+    ba[5] = 1
+    ba.clear_all_bits
+    assert_equal "0000000000", ba.to_s
+  end
   
   # This method is not implemented yet.
 
