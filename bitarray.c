@@ -23,8 +23,9 @@ struct bit_array {
 
 /* Set the specified bit to 1. Return 1 on success, 0 on failure. */
 static int
-set_bit(struct bit_array *ba, size_t bit)
+set_bit(struct bit_array *ba, ptrdiff_t bit)
 {
+    if (bit < 0) bit += ba->bits;
     if (bit >= ba->bits) {
         return 0;
     }
@@ -45,8 +46,9 @@ set_all_bits(struct bit_array *ba)
 
 /* Clear the specified bit to 0. Return 1 on success, 0 on failure. */
 static int
-clear_bit(struct bit_array *ba, size_t bit)
+clear_bit(struct bit_array *ba, ptrdiff_t bit)
 {
+    if (bit < 0) bit += ba->bits;
     if (bit >= ba->bits) {
         return 0;
     }
@@ -67,8 +69,9 @@ clear_all_bits(struct bit_array *ba)
 
 /* Toggle the state of the specified bit. Return 1 on success, 0 on failure. */
 static int
-toggle_bit(struct bit_array *ba, size_t bit)
+toggle_bit(struct bit_array *ba, ptrdiff_t bit)
 {
+    if (bit < 0) bit += ba->bits;
     if (bit >= ba->bits) {
         return 0;
     }
@@ -80,7 +83,7 @@ toggle_bit(struct bit_array *ba, size_t bit)
 
 /* Assign the specified value to a bit. Return 1 on success, 0 on failure. */
 static int
-assign_bit(struct bit_array *ba, size_t bit, int value)
+assign_bit(struct bit_array *ba, ptrdiff_t bit, int value)
 {
     if (value == 0) {
         return clear_bit(ba, bit);
@@ -94,8 +97,9 @@ assign_bit(struct bit_array *ba, size_t bit, int value)
 
 /* Get the state of the specified bit. Return -1 on failure. */
 static int
-get_bit(struct bit_array *ba, size_t bit)
+get_bit(struct bit_array *ba, ptrdiff_t bit)
 {
+    if (bit < 0) bit += ba->bits;
     if (bit >= ba->bits) {
         return -1;
     }
@@ -162,15 +166,12 @@ rb_bitarray_set_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    long index = NUM2LONG(bit);
-    if (index < 0) {
-        index += ba->bits;
-    }
+    ptrdiff_t index = NUM2SSIZET(bit);
 
     if (set_bit(ba, index)) {
         return self;
     } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
     }
 }
 
@@ -195,15 +196,12 @@ rb_bitarray_clear_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    long index = NUM2LONG(bit);
-    if (index < 0) {
-        index += ba->bits;
-    }
+    ptrdiff_t index = NUM2SSIZET(bit);
 
     if (clear_bit(ba, index)) {
         return self;
     } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
     }
 }
 
@@ -228,17 +226,14 @@ rb_bitarray_get_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    long index = NUM2LONG(bit);
-    if (index < 0) {
-        index += ba->bits;
-    }
+    ptrdiff_t index = NUM2SSIZET(bit);
 
     int bit_value = get_bit(ba, index);
 
     if (bit_value != -1) {
         return INT2NUM(bit_value);
     } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
     }
 }
 
@@ -249,18 +244,14 @@ rb_bitarray_assign_bit(VALUE self, VALUE bit, VALUE value)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    long index = NUM2LONG(bit);
-    if (index < 0) {
-        index += ba->bits;
-    }
-
+    ptrdiff_t index = NUM2SSIZET(bit);
     int bit_value = NUM2INT(value);
 
     int result = assign_bit(ba, index, bit_value);
     if (result == 1) {
         return self;
     } else if (result == 0) {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
     } else {
         rb_raise(rb_eRuntimeError, "bit value %d out of range", bit_value);
     }

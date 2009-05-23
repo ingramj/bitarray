@@ -1,0 +1,9 @@
+* Comment code. I'd like for it to be useful as a tutorial for extension
+  writing, especially with regards to implementing new types.
+
+* Fix cloning.
+
+* Implement some more methods, like Hamming weight, and in-place enumerator
+  methods (map!, reverse!, etc).
+
+* Maybe allow resizing.
