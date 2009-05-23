@@ -322,6 +322,7 @@ Init_bitarray()
     rb_define_method(rb_bitarray_class, "[]", rb_bitarray_get_bit, 1);
     rb_define_method(rb_bitarray_class, "[]=", rb_bitarray_assign_bit, 2);
     rb_define_method(rb_bitarray_class, "inspect", rb_bitarray_inspect, 0);
+    rb_define_alias(rb_bitarray_class, "to_s", "inspect");
     rb_define_method(rb_bitarray_class, "each", rb_bitarray_each, 0);
 
     rb_include_module(rb_bitarray_class, rb_mEnumerable);

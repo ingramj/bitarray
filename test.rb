@@ -48,15 +48,16 @@ class TestLibraryFileName < Test::Unit::TestCase
     assert_equal 1000, @public_ba.size
   end
   
-  # These methods aren't implemented yet.
 
-  #def test_to_s
-  #  bf = BitArray.new(10)
-  #  bf[1] = 1
-  #  bf[5] = 1
-  #  assert_equal "0100010000", bf.to_s
-  #end
+  def test_to_s
+    ba = BitArray.new(10)
+    ba[1] = 1
+    ba[5] = 1
+    assert_equal "[0, 1, 0, 0, 0, 1, 0, 0, 0, 0]", ba.to_s
+  end
   
+  # This method is not implemented yet.
+
   #def test_total_set
   #  bf = BitArray.new(10)
   #  bf[1] = 1
