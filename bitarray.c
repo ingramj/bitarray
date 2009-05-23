@@ -81,7 +81,8 @@ toggle_bit(struct bit_array *ba, ptrdiff_t bit)
 }
 
 
-/* Assign the specified value to a bit. Return 1 on success, 0 on failure. */
+/* Assign the specified value to a bit. Return 1 on success, 0 on invalid bit
+ * index, and -1 on invalid value. */
 static int
 assign_bit(struct bit_array *ba, ptrdiff_t bit, int value)
 {
