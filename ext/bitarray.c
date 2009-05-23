@@ -114,7 +114,7 @@ get_bit(struct bit_array *ba, ptrdiff_t bit)
 }
 
 
-/* Ruby Interface Functions */
+/* Ruby Interface Functions. These aren't documented yet. */
 
 static VALUE rb_bitarray_class;
 
@@ -208,7 +208,7 @@ rb_bitarray_set_all_bits(VALUE self)
 
     if(set_all_bits(ba)) {
         return self;
-    } else {    /* This shouldn't ever happen. */
+    } else {
         rb_bug("BitArray#set_all_bits failed. This should not occur.");
     }
 }
@@ -238,7 +238,7 @@ rb_bitarray_clear_all_bits(VALUE self)
 
     if(clear_all_bits(ba)) {
         return self;
-    } else {    /* This shouldn't ever happen. */
+    } else {
         rb_bug("BitArray#clear_all_bits failed. This should not occur.");
     }
 }
@@ -310,7 +310,6 @@ rb_bitarray_each(VALUE self)
 
     size_t i;
 
-    /* TODO: This was taken from array.c Figure out how it works. */
     RETURN_ENUMERATOR(self, 0, 0);
     for (i = 0; i < ba->bits; i++) {
         int bit_value = get_bit(ba, i);
