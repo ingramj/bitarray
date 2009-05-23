@@ -126,7 +126,29 @@ get_bit(struct bit_array *ba, ptrdiff_t bit)
 }
 
 
-/* Ruby Interface Functions. These aren't documented yet. */
+/* Return the number of set bits in the array. */
+static size_t
+total_set(struct bit_array *ba)
+{
+    /* This is basically the algorithm from K&R, with a running total for all
+     * array elements. There are faster algorithms, but this one is simpler to
+     * implement. The running time is proportionate to the number of set bits.
+     */
+    size_t count = 0;
+    int i;
+    unsigned x;
+    for (i = 0; i < ba->array_size; i++) {
+        x = ba->array[i];
+        while (x) {
+            x &= x - 1;
+            count++;
+        }
+    }
+    return count;
+}
+
+
+/* Ruby Interface Functions. */
 
 static VALUE rb_bitarray_class;
 
@@ -210,6 +232,22 @@ rb_bitarray_size(VALUE self)
     Data_Get_Struct(self, struct bit_array, ba);
 
     return SIZET2NUM(ba->bits);
+}
+
+
+/* call-seq:
+ *      bitarray.total_set      -> int
+ *
+ * Return the number of set (1) bits in _bitarray_.
+ */
+static VALUE
+rb_bitarray_total_set(VALUE self)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    size_t count = total_set(ba);
+    return SIZET2NUM(count);
 }
 
 
@@ -471,6 +509,7 @@ Init_bitarray()
     rb_define_alias(rb_bitarray_class, "dup", "clone");
     rb_define_method(rb_bitarray_class, "size", rb_bitarray_size, 0);
     rb_define_alias(rb_bitarray_class, "length", "size");
+    rb_define_method(rb_bitarray_class, "total_set", rb_bitarray_total_set, 0);
     rb_define_method(rb_bitarray_class, "set_bit", rb_bitarray_set_bit, 1);
     rb_define_method(rb_bitarray_class, "set_all_bits",
             rb_bitarray_set_all_bits, 0);

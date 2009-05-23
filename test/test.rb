@@ -90,14 +90,12 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba.toggle_all_bits
     assert_equal "1011101111", ba.to_s
   end
-  
-  # This method is not implemented yet.
 
-  #def test_total_set
-  #  bf = BitArray.new(10)
-  #  bf[1] = 1
-  #  bf[5] = 1
-  #  assert_equal 2, bf.total_set
-  #end
+  def test_total_set
+    bf = BitArray.new(10)
+    bf[1] = 1
+    bf[5] = 1
+    assert_equal 2, bf.total_set
+  end
 end
 
