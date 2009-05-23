@@ -113,27 +113,27 @@ get_bit(struct bit_array *ba, ptrdiff_t bit)
 }
 
 
-/* Bit Array destruction */
-static void
-destroy_bit_array(struct bit_array *ba)
-{
-    if (ba && ba->array) {
-        free(ba->array);
-    }
-    free(ba);
-}
-
-
 /* Ruby Interface Functions */
 
 static VALUE rb_bitarray_class;
+
+
+static void
+rb_bitarray_free(struct bit_array *ba)
+{
+    if (ba && ba->array) {
+        ruby_xfree(ba->array);
+    }
+    ruby_xfree(ba);
+}
+
 
 static VALUE
 rb_bitarray_alloc(VALUE klass)
 {
     struct bit_array *ba;
     return Data_Make_Struct(rb_bitarray_class, struct bit_array, NULL,
-            destroy_bit_array, ba);
+            rb_bitarray_free, ba);
 }
 
 
@@ -268,19 +268,16 @@ rb_bitarray_inspect(VALUE self)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    VALUE str;
+    size_t cstr_size = ba->bits + 1;
+    char cstr[cstr_size];
+    
     size_t i;
-
-    str = rb_str_new2("[");
     for (i = 0; i < ba->bits; i++) {
-        if (i < (ba->bits - 1)) {
-            rb_str_catf(str, "%u, ", get_bit(ba, i));
-        } else {
-            rb_str_catf(str, "%d", get_bit(ba, i));
-        }
+        cstr[i] = get_bit(ba, i) + '0';
     }
-    rb_str_cat2(str, "]");
+    cstr[ba->bits] = '\0';
 
+    VALUE str = rb_str_new2(cstr);
     return str;
 }
 

@@ -53,7 +53,7 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba = BitArray.new(10)
     ba[1] = 1
     ba[5] = 1
-    assert_equal "[0, 1, 0, 0, 0, 1, 0, 0, 0, 0]", ba.to_s
+    assert_equal "0100010000", ba.to_s
   end
   
   # This method is not implemented yet.
