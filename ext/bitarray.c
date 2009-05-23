@@ -81,6 +81,18 @@ toggle_bit(struct bit_array *ba, ptrdiff_t bit)
 }
 
 
+/* Toggle the state of all bits. */
+static int
+toggle_all_bits(struct bit_array *ba)
+{
+    int i;
+    for(i = 0; i < ba->array_size; i++) {
+        ba->array[i] ^= ~0ul;     /* ~0 = all bits set. */
+    }
+    return 1;
+}
+
+
 /* Assign the specified value to a bit. Return 1 on success, 0 on invalid bit
  * index, and -1 on invalid value. */
 static int
@@ -309,6 +321,25 @@ rb_bitarray_toggle_bit(VALUE self, VALUE bit)
 
 
 /* call-seq:
+ *      bitarray.toggle_all_bits         -> bitarray
+ *
+ * Toggle all bits.
+ */
+static VALUE
+rb_bitarray_toggle_all_bits(VALUE self)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    if(toggle_all_bits(ba)) {
+        return self;
+    } else {
+        rb_bug("BitArray#clear_all_bits failed. This should not occur.");
+    }
+}
+
+
+/* call-seq:
  *      bitarray[index]         -> value
  *
  * Bit Reference---Returns the bit at _index_. Negative indices count backwards
@@ -448,6 +479,8 @@ Init_bitarray()
             rb_bitarray_clear_all_bits, 0);
     rb_define_method(rb_bitarray_class, "toggle_bit",
             rb_bitarray_toggle_bit, 1);
+    rb_define_method(rb_bitarray_class, "toggle_all_bits",
+            rb_bitarray_toggle_all_bits, 0);
     rb_define_method(rb_bitarray_class, "[]", rb_bitarray_get_bit, 1);
     rb_define_method(rb_bitarray_class, "[]=", rb_bitarray_assign_bit, 2);
     rb_define_method(rb_bitarray_class, "inspect", rb_bitarray_inspect, 0);

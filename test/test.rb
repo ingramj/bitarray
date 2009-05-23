@@ -82,6 +82,14 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba.toggle_bit 5
     assert_equal 1, ba[5] 
   end
+
+  def test_toggle_all_bits
+    ba = BitArray.new(10)
+    ba[1] = 1
+    ba[5] = 1
+    ba.toggle_all_bits
+    assert_equal "1011101111", ba.to_s
+  end
   
   # This method is not implemented yet.
 

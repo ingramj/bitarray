@@ -26,16 +26,11 @@ Benchmark.bm(24) { |bm|
   bm.report("BitField to_s")       { 10000.times { bf.to_s } }
   bm.report("BitArray to_s")       { 10000.times { ba.to_s } }
 
-  puts "------------------------ Set All"
+  puts "------------------------ BitArray methods"
   bm.report("BitArray set_all_bits")    { 10000.times { ba.set_all_bits} }
-
-  puts "------------------------ Clear All"
   bm.report("BitArray clear_all_bits")  { 10000.times { ba.clear_all_bits } }
-
-  puts "------------------------ Toggle Bit"
   bm.report("BitArray toggle_bit")      { 10000.times { ba.toggle_bit(1) } }
-  
-  puts "------------------------ Clone"
+  bm.report("BitArray toggle_all_bits") { 10000.times { ba.toggle_all_bits } }
   bm.report("BitArray clone")           { 10000.times { ba.clone } }
 }
 
