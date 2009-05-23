@@ -47,7 +47,6 @@ class TestLibraryFileName < Test::Unit::TestCase
   def test_size
     assert_equal 1000, @public_ba.size
   end
-  
 
   def test_to_s
     ba = BitArray.new(10)
@@ -55,7 +54,6 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba[5] = 1
     assert_equal "0100010000", ba.to_s
   end
-
 
   def test_set_all_bits
     ba = BitArray.new(10)
@@ -77,6 +75,12 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba[5] = 1
     ba_clone = ba.clone
     assert_equal ba_clone.to_s, ba.to_s
+  end
+
+  def test_toggle_bit
+    ba = BitArray.new(10)
+    ba.toggle_bit 5
+    assert_equal 1, ba[5] 
   end
   
   # This method is not implemented yet.

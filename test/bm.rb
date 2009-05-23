@@ -31,6 +31,9 @@ Benchmark.bm(24) { |bm|
 
   puts "------------------------ Clear All"
   bm.report("BitArray clear_all_bits")  { 10000.times { ba.clear_all_bits } }
+
+  puts "------------------------ Toggle Bit"
+  bm.report("BitArray toggle_bit")      { 10000.times { ba.toggle_bit(1) } }
   
   puts "------------------------ Clone"
   bm.report("BitArray clone")           { 10000.times { ba.clone } }

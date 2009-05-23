@@ -286,6 +286,29 @@ rb_bitarray_clear_all_bits(VALUE self)
 
 
 /* call-seq:
+ *      bitarray.toggle_bit(index)       -> bitarray
+ *
+ * Toggles the bit at _index_ to 0. Negative indices count backwards from the
+ * end of _bitarray_. If _index_ is greater than the capacity of _bitarray_, an
+ * +IndexError+ is raised.
+ */
+static VALUE
+rb_bitarray_toggle_bit(VALUE self, VALUE bit)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    ptrdiff_t index = NUM2SSIZET(bit);
+
+    if (toggle_bit(ba, index)) {
+        return self;
+    } else {
+        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
+    }
+}
+
+
+/* call-seq:
  *      bitarray[index]         -> value
  *
  * Bit Reference---Returns the bit at _index_. Negative indices count backwards
@@ -423,6 +446,8 @@ Init_bitarray()
     rb_define_method(rb_bitarray_class, "clear_bit", rb_bitarray_clear_bit, 1);
     rb_define_method(rb_bitarray_class, "clear_all_bits",
             rb_bitarray_clear_all_bits, 0);
+    rb_define_method(rb_bitarray_class, "toggle_bit",
+            rb_bitarray_toggle_bit, 1);
     rb_define_method(rb_bitarray_class, "[]", rb_bitarray_get_bit, 1);
     rb_define_method(rb_bitarray_class, "[]=", rb_bitarray_assign_bit, 2);
     rb_define_method(rb_bitarray_class, "inspect", rb_bitarray_inspect, 0);
