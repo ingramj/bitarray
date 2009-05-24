@@ -183,7 +183,12 @@ rb_bitarray_initialize(VALUE self, VALUE size)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    size_t bits = NUM2SIZET(size);
+    ptrdiff_t bits = NUM2SSIZET(size);
+    if (bits <= 0) {
+        ba->bits = 0;
+        ba->array_size = 0;
+        return self;
+    }
     size_t array_size = ((bits - 1) / UINT_BITS) + 1;
 
     ba->bits = bits;
@@ -245,17 +250,15 @@ rb_bitarray_concat(VALUE x, VALUE y)
      */
     size_t z_index = 0;
     size_t i;
-    for (i = 0; i < x_ba->bits; i++) {
+    for (i = 0; i < x_ba->bits; i++, z_index++) {
         if (get_bit(x_ba, i) == 1) {
             set_bit(z_ba, z_index);
         }
-        z_index++;
     }
-    for (i = 0; i < y_ba->bits; i++) {
+    for (i = 0; i < y_ba->bits; i++, z_index++) {
         if (get_bit(y_ba, i) == 1) {
             set_bit(z_ba, z_index);
         }
-        z_index++;
     }
 
     return z;
@@ -421,12 +424,10 @@ rb_bitarray_toggle_all_bits(VALUE self)
 
 /* Return an individual bit. */
 static VALUE
-rb_bitarray_get_bit(VALUE self, VALUE bit)
+rb_bitarray_get_bit(VALUE self, ptrdiff_t index)
 {
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
-
-    ptrdiff_t index = NUM2SSIZET(bit);
 
     int bit_value = get_bit(ba, index);
 
@@ -442,29 +443,36 @@ rb_bitarray_get_bit(VALUE self, VALUE bit)
 static VALUE
 rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
 {
-    /* Quick exit - a negative length returns nil. */
-    if (len < 0) {
-        return Qnil;
-    }
 
     struct bit_array *x_ba;
     Data_Get_Struct(x, struct bit_array, x_ba);
 
-    /* Make sure that we don't try getting more bits than x has. We handle this
-     * the same way as Array; if beg+len is past the end of x, shorten len.
+    /* Quick exit - a negative length, or a beginning past the end of the
+     * array returns nil.
      */
     if (beg < 0) {
         beg += x_ba->bits;
     }
-    if ((beg + len) > x_ba->bits) {
-        len -= ((beg + len) - x_ba->bits);
+    if (len < 0 || beg > x_ba->bits) {
+        return Qnil;
+    }
+
+    /* Make sure that we don't try getting more bits than x has. We handle this
+     * the same way as Array; if beg+len is past the end of x, shorten len.
+     */
+    if (x_ba->bits <  len ||  x_ba->bits < (beg + len)) {
+        len = x_ba->bits - beg;
     }
 
     /* Create a new BitArray of the appropriate size. */
     VALUE y;
-    struct bit_array *y_ba;
     y = rb_bitarray_alloc(rb_bitarray_class);
     rb_bitarray_initialize(y, SSIZET2NUM(len));
+    /* If our length is 0, we can just return now. */
+    if (len == 0) {
+        return y;
+    }
+    struct bit_array *y_ba;
     Data_Get_Struct(y, struct bit_array, y_ba);
 
     /* For each set bit in x[beg..len], set the corresponding bit in y. */
@@ -495,18 +503,48 @@ rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
 static VALUE
 rb_bitarray_bitref(int argc, VALUE *argv, VALUE self)
 {
-    /* For now, we only handle a single index, or a starting index and a
-     * length. Eventually, we'll also handle ranges.
-     */
-    if (argc == 1){
-        return rb_bitarray_get_bit(self, argv[0]);
-    } else if (argc == 2) {
+    /* We follow a form similar to rb_ary_aref in array.c */
+
+    /* Two arguments means we have a beginning and a  length */
+    if (argc == 2) {
         ptrdiff_t beg = NUM2SSIZET(argv[0]);
         ptrdiff_t len = NUM2SSIZET(argv[1]);
         return rb_bitarray_subseq(self, beg, len);
-    } else {
-        rb_raise(rb_eArgError, "wrong number of arguments (%d for 2)", argc);
+    } 
+    
+    /* Make sure we have either 1 or 2 arguments. */
+    if (argc != 1) {
+        rb_scan_args(argc, argv, "11", 0, 0);
     }
+
+    /* If we have a single argument, it can be either an index, or a range. */
+    VALUE arg = argv[0];
+    
+    /* rb_ary_aref treats a fixnum argument specially, for a speedup in the
+     * most common case. We'll do the same.
+     */
+    if (FIXNUM_P(arg)) {
+        return rb_bitarray_get_bit(self, FIX2LONG(arg));
+    }
+
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+    /* Next we see if arg is a range. rb_range_beg_len is defined in range.c
+     * If arg is not a range, it returns Qfalse. If arg is a range, but it
+     * refers to invalid indices, it returns Qnil. Otherwise, it sets beg and
+     * end to the appropriate values.
+     */
+    long beg, len;
+    switch (rb_range_beg_len(arg, &beg, &len, ba->bits, 0)) {
+        case Qfalse:
+            break;
+        case Qnil:
+            return Qnil;
+        default:
+            return rb_bitarray_subseq(self, beg, len);
+    }
+    
+    return rb_bitarray_get_bit(self, NUM2SSIZET(arg));
 }
 
 
@@ -625,6 +663,7 @@ Init_bitarray()
     rb_define_method(rb_bitarray_class, "toggle_all_bits",
             rb_bitarray_toggle_all_bits, 0);
     rb_define_method(rb_bitarray_class, "[]", rb_bitarray_bitref, -1);
+    rb_define_alias(rb_bitarray_class, "slice", "[]");
     rb_define_method(rb_bitarray_class, "[]=", rb_bitarray_assign_bit, 2);
     rb_define_method(rb_bitarray_class, "inspect", rb_bitarray_inspect, 0);
     rb_define_alias(rb_bitarray_class, "to_s", "inspect");
