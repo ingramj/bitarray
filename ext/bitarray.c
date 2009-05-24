@@ -201,21 +201,19 @@ rb_bitarray_initialize(VALUE self, VALUE size)
  * Produces a copy of _bitarray_.
  */
 static VALUE
-rb_bitarray_clone(VALUE self)
+rb_bitarray_initialize_copy(VALUE self, VALUE orig)
 {
-    struct bit_array *ba, *new_ba;
-    VALUE rb_new_ba;
-    Data_Get_Struct(self, struct bit_array, ba);
-    rb_new_ba = Data_Make_Struct(rb_bitarray_class, struct bit_array, NULL,
-            rb_bitarray_free, new_ba);
+    struct bit_array *new_ba, *orig_ba;
+    Data_Get_Struct(self, struct bit_array, new_ba);
+    Data_Get_Struct(orig, struct bit_array, orig_ba);
 
-    new_ba->bits = ba->bits;
-    new_ba->array_size = ba->array_size;
+    new_ba->bits = orig_ba->bits;
+    new_ba->array_size = orig_ba->array_size;
     new_ba->array = ruby_xcalloc(new_ba->array_size, UINT_BYTES);
 
-    memcpy(new_ba->array, ba->array, (ba->array_size * UINT_BYTES));
+    memcpy(new_ba->array, orig_ba->array, (new_ba->array_size * UINT_BYTES));
 
-    return rb_new_ba;
+    return self;
 }
 
 
@@ -502,11 +500,8 @@ Init_bitarray()
     rb_define_method(rb_bitarray_class, "initialize",
             rb_bitarray_initialize, 1);
     
-    /* TODO: apparently, we need to define an #initialize_copy method instead
-     * of clone.
-     */
-    rb_define_method(rb_bitarray_class, "clone", rb_bitarray_clone, 0);
-    rb_define_alias(rb_bitarray_class, "dup", "clone");
+    rb_define_method(rb_bitarray_class, "initialize_copy",
+            rb_bitarray_initialize_copy, 1);
     rb_define_method(rb_bitarray_class, "size", rb_bitarray_size, 0);
     rb_define_alias(rb_bitarray_class, "length", "size");
     rb_define_method(rb_bitarray_class, "total_set", rb_bitarray_total_set, 0);
