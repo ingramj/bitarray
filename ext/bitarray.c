@@ -218,6 +218,51 @@ rb_bitarray_initialize_copy(VALUE self, VALUE orig)
 
 
 /* call-seq:
+ *      bitarray + other_bitarray       -> a_bitarray
+ *
+ * Concatenation---Return a new BitArray built by concatenating the two
+ * BitArrays.
+ */
+static VALUE
+rb_bitarray_concat(VALUE x, VALUE y)
+{
+    /* Get the bit_arrays from x and y */
+    struct bit_array *x_ba, *y_ba;
+    Data_Get_Struct(x, struct bit_array, x_ba);
+    Data_Get_Struct(y, struct bit_array, y_ba);
+
+    /* Create a new BitArray, and its bit_array */
+    VALUE z;
+    struct bit_array *z_ba;
+    z = rb_bitarray_alloc(rb_bitarray_class);
+    Data_Get_Struct(z, struct bit_array, z_ba);
+    rb_bitarray_initialize(z, SIZET2NUM(x_ba->bits + y_ba->bits));
+
+    /* For each bit set in x and y, set the corresponding bit in z.
+     * 
+     * It might be faster to memcpy x_ba->array to the beginning of
+     * z_ba->array, then set the rest of the bits by looping over y...
+     */
+    size_t z_index = 0;
+    size_t i;
+    for (i = 0; i < x_ba->bits; i++) {
+        if (get_bit(x_ba, i) == 1) {
+            set_bit(z_ba, z_index);
+        }
+        z_index++;
+    }
+    for (i = 0; i < y_ba->bits; i++) {
+        if (get_bit(y_ba, i) == 1) {
+            set_bit(z_ba, z_index);
+        }
+        z_index++;
+    }
+
+    return z;
+}
+
+
+/* call-seq:
  *      bitarray.size           -> int
  *      bitarray.length         -> int
  *
@@ -496,12 +541,11 @@ Init_bitarray()
 {
     rb_bitarray_class = rb_define_class("BitArray", rb_cObject);
     rb_define_alloc_func(rb_bitarray_class, rb_bitarray_alloc);
-
     rb_define_method(rb_bitarray_class, "initialize",
             rb_bitarray_initialize, 1);
-    
     rb_define_method(rb_bitarray_class, "initialize_copy",
             rb_bitarray_initialize_copy, 1);
+    rb_define_method(rb_bitarray_class, "+", rb_bitarray_concat, 1);
     rb_define_method(rb_bitarray_class, "size", rb_bitarray_size, 0);
     rb_define_alias(rb_bitarray_class, "length", "size");
     rb_define_method(rb_bitarray_class, "total_set", rb_bitarray_total_set, 0);
