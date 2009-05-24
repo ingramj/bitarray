@@ -235,8 +235,8 @@ rb_bitarray_concat(VALUE x, VALUE y)
     VALUE z;
     struct bit_array *z_ba;
     z = rb_bitarray_alloc(rb_bitarray_class);
-    Data_Get_Struct(z, struct bit_array, z_ba);
     rb_bitarray_initialize(z, SIZET2NUM(x_ba->bits + y_ba->bits));
+    Data_Get_Struct(z, struct bit_array, z_ba);
 
     /* For each bit set in x and y, set the corresponding bit in z.
      * 
@@ -419,14 +419,7 @@ rb_bitarray_toggle_all_bits(VALUE self)
     }
 }
 
-
-/* call-seq:
- *      bitarray[index]         -> value
- *
- * Bit Reference---Returns the bit at _index_. Negative indices count backwards
- * from the end of _bitarray_. If _index_ is greater than the capacity of
- * _bitarray_, an +IndexError+ is raised.
- */
+/* Return an individual bit. */
 static VALUE
 rb_bitarray_get_bit(VALUE self, VALUE bit)
 {
@@ -441,6 +434,78 @@ rb_bitarray_get_bit(VALUE self, VALUE bit)
         return INT2NUM(bit_value);
     } else {
         rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
+    }
+}
+
+
+/* Create a new BitArray from a subsequence of x. */
+static VALUE
+rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
+{
+    /* Quick exit - a negative length returns nil. */
+    if (len < 0) {
+        return Qnil;
+    }
+
+    struct bit_array *x_ba;
+    Data_Get_Struct(x, struct bit_array, x_ba);
+
+    /* Make sure that we don't try getting more bits than x has. We handle this
+     * the same way as Array; if beg+len is past the end of x, shorten len.
+     */
+    if (beg < 0) {
+        beg += x_ba->bits;
+    }
+    if ((beg + len) > x_ba->bits) {
+        len -= ((beg + len) - x_ba->bits);
+    }
+
+    /* Create a new BitArray of the appropriate size. */
+    VALUE y;
+    struct bit_array *y_ba;
+    y = rb_bitarray_alloc(rb_bitarray_class);
+    rb_bitarray_initialize(y, SSIZET2NUM(len));
+    Data_Get_Struct(y, struct bit_array, y_ba);
+
+    /* For each set bit in x[beg..len], set the corresponding bit in y. */
+    size_t x_index, y_index;
+    for (x_index = beg, y_index = 0;
+            x_index < len;
+            x_index++, y_index++)
+    {
+        if (get_bit(x_ba, x_index) == 1) {
+            set_bit(y_ba, y_index);
+        }
+    }
+
+    return y;
+}
+
+
+/* call-seq:
+ *      bitarray[index]         -> value
+ *      bitarray[beg, len]      -> a_bitarray
+ *
+ * Bit Reference---Returns the bit at _index_, or returns a subarray starting
+ * at _beg_, and continuing for _len_ bits. Negative indices count backwards
+ * from the end of _bitarray_. If _index_ is greater than the capacity of
+ * _bitarray_, an +IndexError+ is raised.
+ */
+
+static VALUE
+rb_bitarray_bitref(int argc, VALUE *argv, VALUE self)
+{
+    /* For now, we only handle a single index, or a starting index and a
+     * length. Eventually, we'll also handle ranges.
+     */
+    if (argc == 1){
+        return rb_bitarray_get_bit(self, argv[0]);
+    } else if (argc == 2) {
+        ptrdiff_t beg = NUM2SSIZET(argv[0]);
+        ptrdiff_t len = NUM2SSIZET(argv[1]);
+        return rb_bitarray_subseq(self, beg, len);
+    } else {
+        rb_raise(rb_eArgError, "wrong number of arguments (%d for 2)", argc);
     }
 }
 
@@ -559,7 +624,7 @@ Init_bitarray()
             rb_bitarray_toggle_bit, 1);
     rb_define_method(rb_bitarray_class, "toggle_all_bits",
             rb_bitarray_toggle_all_bits, 0);
-    rb_define_method(rb_bitarray_class, "[]", rb_bitarray_get_bit, 1);
+    rb_define_method(rb_bitarray_class, "[]", rb_bitarray_bitref, -1);
     rb_define_method(rb_bitarray_class, "[]=", rb_bitarray_assign_bit, 2);
     rb_define_method(rb_bitarray_class, "inspect", rb_bitarray_inspect, 0);
     rb_define_alias(rb_bitarray_class, "to_s", "inspect");
