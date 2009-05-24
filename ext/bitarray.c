@@ -493,7 +493,7 @@ rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
 /* call-seq:
  *      bitarray[index]         -> value
  *      bitarray[beg, len]      -> a_bitarray
- *      bitarray[rang]          -> a_bitarray
+ *      bitarray[range]         -> a_bitarray
  *
  * Bit Reference---Returns the bit at _index_, or returns a subarray starting
  * at _beg_, and continuing for _len_ bits, or returns a subarray specified by

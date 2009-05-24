@@ -14,7 +14,7 @@ EOF
     gem.require_paths = ["ext"]
     gem.extensions = ["ext/extconf.rb"]
     gem.required_ruby_version = ">= 1.9.1"
-    gem.rdoc_options << '--exclude' << 'ext/Makefile' << '--title' << ' BitArray Documentation'
+    gem.rdoc_options << '--exclude' << 'ext/Makefile' << '--title' << 'BitArray Documentation'
   end
 rescue LoadError
   puts "Jeweler not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
