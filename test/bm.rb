@@ -44,6 +44,10 @@ Benchmark.bm(28) { |bm|
   bm.report("BitArray clone")           { 100000.times { ba.clone } }
   bm.report("BitArray slice (beg,len)") { 100000.times { ba[17, 230] } }
   bm.report("BitArray slice (range)")   { 100000.times { ba[17..247] } }
-  bm.report("BitArray +")               { 100000.times { ba + ba } }
+  ba.set_all_bits
+  bm.report("BitArray + (256, all set)") { 100000.times { ba + ba } }
+  ba2 = BitArray.new(240)
+  ba2.set_all_bits
+  bm.report("BitArray + (240, all set)") { 100000.times { ba2 + ba2 } }
 }
 

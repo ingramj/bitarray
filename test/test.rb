@@ -120,6 +120,18 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba2.set_all_bits
     ba3 = ba1 + ba2
     assert_equal "0000011111", ba3.to_s
+    ba3 = ba2 + ba1
+    assert_equal "1111100000", ba3.to_s
+  end
+
+  def test_concatenation2
+    ba1 = BitArray.new(32)
+    ba2 = BitArray.new(7)
+    ba2.set_all_bits
+    ba3 = ba1 + ba2
+    assert_equal "000000000000000000000000000000001111111", ba3.to_s
+    ba3 = ba2 + ba1
+    assert_equal "111111100000000000000000000000000000000", ba3.to_s
   end
 end
 

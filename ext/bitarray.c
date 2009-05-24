@@ -243,24 +243,28 @@ rb_bitarray_concat(VALUE x, VALUE y)
     rb_bitarray_initialize(z, SIZET2NUM(x_ba->bits + y_ba->bits));
     Data_Get_Struct(z, struct bit_array, z_ba);
 
-    /* For each bit set in x and y, set the corresponding bit in z.
-     * 
-     * It might be faster to memcpy x_ba->array to the beginning of
-     * z_ba->array, then set the rest of the bits by looping over y...
+    /* For each bit set in x and y, set the corresponding bit in z. First, copy
+     * x to the beginning of z. Then, if x->bits is a multiple of UINT_BITS, we
+     * can just copy y onto the end of z. Otherwise, we need to go through y
+     * bit-by-bit and set the appropriate bits in z.
      */
-    size_t z_index = 0;
-    size_t i;
-    for (i = 0; i < x_ba->bits; i++, z_index++) {
-        if (get_bit(x_ba, i) == 1) {
-            set_bit(z_ba, z_index);
+    memcpy(z_ba->array, x_ba->array, (x_ba->array_size * UINT_BYTES));
+    if ((x_ba->bits % UINT_BITS) == 0) {
+        unsigned int *start = z_ba->array + x_ba->array_size;
+        memcpy(start, y_ba->array, (y_ba->array_size * UINT_BYTES));
+    } else {
+        size_t y_index, z_index;
+        for (y_index = 0, z_index = x_ba->bits;
+                y_index < y_ba->bits;
+                y_index++, z_index++)
+        {
+            if (get_bit(y_ba, y_index) == 1) {
+                set_bit(z_ba, z_index);
+            } else {
+                clear_bit(z_ba, z_index);
+            }
         }
     }
-    for (i = 0; i < y_ba->bits; i++, z_index++) {
-        if (get_bit(y_ba, i) == 1) {
-            set_bit(z_ba, z_index);
-        }
-    }
-
     return z;
 }
 
