@@ -92,10 +92,34 @@ class TestLibraryFileName < Test::Unit::TestCase
   end
 
   def test_total_set
-    bf = BitArray.new(10)
-    bf[1] = 1
-    bf[5] = 1
-    assert_equal 2, bf.total_set
+    ba = BitArray.new(10)
+    ba[1] = 1
+    ba[5] = 1
+    assert_equal 2, ba.total_set
+  end
+
+  def test_slice_beg_len
+    ba = BitArray.new(10)
+    ba[1] = 1
+    ba[5] = 1
+    assert_equal "10001", ba[1,5].to_s
+    assert_equal "10000", ba[-5,5].to_s
+  end
+
+  def test_slice_range
+    ba = BitArray.new(10)
+    ba[1] = 1
+    ba[5] = 1
+    assert_equal "10001", ba[1..5].to_s
+    assert_equal "10000", ba[-5..-1].to_s
+  end
+
+  def test_concatenation
+    ba1 = BitArray.new(5)
+    ba2 = BitArray.new(5)
+    ba2.set_all_bits
+    ba3 = ba1 + ba2
+    assert_equal "0000011111", ba3.to_s
   end
 end
 

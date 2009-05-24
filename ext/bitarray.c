@@ -478,7 +478,7 @@ rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
     /* For each set bit in x[beg..len], set the corresponding bit in y. */
     size_t x_index, y_index;
     for (x_index = beg, y_index = 0;
-            x_index < len;
+            x_index < beg + len;
             x_index++, y_index++)
     {
         if (get_bit(x_ba, x_index) == 1) {
@@ -493,11 +493,13 @@ rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
 /* call-seq:
  *      bitarray[index]         -> value
  *      bitarray[beg, len]      -> a_bitarray
+ *      bitarray[rang]          -> a_bitarray
  *
  * Bit Reference---Returns the bit at _index_, or returns a subarray starting
- * at _beg_, and continuing for _len_ bits. Negative indices count backwards
- * from the end of _bitarray_. If _index_ is greater than the capacity of
- * _bitarray_, an +IndexError+ is raised.
+ * at _beg_, and continuing for _len_ bits, or returns a subarray specified by
+ * _range_.  _Negative indices count backwards from the end of _bitarray_. If
+ * _index_ is greater than the capacity of _bitarray_, an +IndexError+ is
+ * raised.
  */
 
 static VALUE

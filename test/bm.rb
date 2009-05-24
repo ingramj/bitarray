@@ -42,5 +42,8 @@ Benchmark.bm(28) { |bm|
   bm.report("BitArray toggle_bit")      { 100000.times { ba.toggle_bit(1) } }
   bm.report("BitArray toggle_all_bits") { 100000.times { ba.toggle_all_bits } }
   bm.report("BitArray clone")           { 100000.times { ba.clone } }
+  bm.report("BitArray slice (beg,len)") { 100000.times { ba[17, 230] } }
+  bm.report("BitArray slice (range)")   { 100000.times { ba[17..247] } }
+  bm.report("BitArray +")               { 100000.times { ba + ba } }
 }
 
