@@ -1,9 +1,7 @@
 * Comment code. I'd like for it to be useful as a tutorial for extension
   writing, especially with regards to implementing new types.
-* Implement some more methods, like slice, and in-place enumerator methods
-  (map!, reverse!, etc).
+* Implement some more methods, like in-place enumerator methods (map!,
+  reverse!, etc).
 * Maybe allow resizing.
 * Write more tests
-* Ruby 1.8 compatibility. This will probably involve just changing some of the
-  NUM2x and x2NUM defines.
 
