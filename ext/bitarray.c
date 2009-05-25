@@ -13,8 +13,8 @@
 
 /* Bit Array structure. */
 struct bit_array {
-    size_t bits;         /* Number of bits. */
-    size_t array_size;   /* Size of the storage array. */
+    long bits;         /* Number of bits. */
+    long array_size;   /* Size of the storage array. */
     unsigned int *array; /* Array of unsigned ints, used for bit storage. */
 };
 
@@ -23,7 +23,7 @@ struct bit_array {
 
 /* Set the specified bit to 1. Return 1 on success, 0 on failure. */
 static int
-set_bit(struct bit_array *ba, ptrdiff_t bit)
+set_bit(struct bit_array *ba, long bit)
 {
     if (bit < 0) bit += ba->bits;
     if (bit >= ba->bits) {
@@ -46,7 +46,7 @@ set_all_bits(struct bit_array *ba)
 
 /* Clear the specified bit to 0. Return 1 on success, 0 on failure. */
 static int
-clear_bit(struct bit_array *ba, ptrdiff_t bit)
+clear_bit(struct bit_array *ba, long bit)
 {
     if (bit < 0) bit += ba->bits;
     if (bit >= ba->bits) {
@@ -69,7 +69,7 @@ clear_all_bits(struct bit_array *ba)
 
 /* Toggle the state of the specified bit. Return 1 on success, 0 on failure. */
 static int
-toggle_bit(struct bit_array *ba, ptrdiff_t bit)
+toggle_bit(struct bit_array *ba, long bit)
 {
     if (bit < 0) bit += ba->bits;
     if (bit >= ba->bits) {
@@ -85,7 +85,7 @@ toggle_bit(struct bit_array *ba, ptrdiff_t bit)
 static int
 toggle_all_bits(struct bit_array *ba)
 {
-    int i;
+    long i;
     for(i = 0; i < ba->array_size; i++) {
         ba->array[i] ^= ~0ul;     /* ~0 = all bits set. */
     }
@@ -96,7 +96,7 @@ toggle_all_bits(struct bit_array *ba)
 /* Assign the specified value to a bit. Return 1 on success, 0 on invalid bit
  * index, and -1 on invalid value. */
 static int
-assign_bit(struct bit_array *ba, ptrdiff_t bit, int value)
+assign_bit(struct bit_array *ba, long bit, int value)
 {
     if (value == 0) {
         return clear_bit(ba, bit);
@@ -110,7 +110,7 @@ assign_bit(struct bit_array *ba, ptrdiff_t bit, int value)
 
 /* Get the state of the specified bit. Return -1 on failure. */
 static int
-get_bit(struct bit_array *ba, ptrdiff_t bit)
+get_bit(struct bit_array *ba, long bit)
 {
     if (bit < 0) bit += ba->bits;
     if (bit >= ba->bits) {
@@ -127,15 +127,15 @@ get_bit(struct bit_array *ba, ptrdiff_t bit)
 
 
 /* Return the number of set bits in the array. */
-static size_t
+static long
 total_set(struct bit_array *ba)
 {
     /* This is basically the algorithm from K&R, with a running total for all
      * array elements. There are faster algorithms, but this one is simpler to
      * implement. The running time is proportionate to the number of set bits.
      */
-    size_t count = 0;
-    int i;
+    long count = 0;
+    long i;
     unsigned x;
     for (i = 0; i < ba->array_size; i++) {
         x = ba->array[i];
@@ -183,13 +183,13 @@ rb_bitarray_initialize(VALUE self, VALUE size)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    ptrdiff_t bits = NUM2SSIZET(size);
+    long bits = NUM2LONG(size);
     if (bits <= 0) {
         ba->bits = 0;
         ba->array_size = 0;
         return self;
     }
-    size_t array_size = ((bits - 1) / UINT_BITS) + 1;
+    long array_size = ((bits - 1) / UINT_BITS) + 1;
 
     ba->bits = bits;
     ba->array_size = array_size;
@@ -240,7 +240,7 @@ rb_bitarray_concat(VALUE x, VALUE y)
     VALUE z;
     struct bit_array *z_ba;
     z = rb_bitarray_alloc(rb_bitarray_class);
-    rb_bitarray_initialize(z, SIZET2NUM(x_ba->bits + y_ba->bits));
+    rb_bitarray_initialize(z, LONG2NUM(x_ba->bits + y_ba->bits));
     Data_Get_Struct(z, struct bit_array, z_ba);
 
     /* For each bit set in x and y, set the corresponding bit in z. First, copy
@@ -253,7 +253,7 @@ rb_bitarray_concat(VALUE x, VALUE y)
         unsigned int *start = z_ba->array + x_ba->array_size;
         memcpy(start, y_ba->array, (y_ba->array_size * UINT_BYTES));
     } else {
-        size_t y_index, z_index;
+        long y_index, z_index;
         for (y_index = 0, z_index = x_ba->bits;
                 y_index < y_ba->bits;
                 y_index++, z_index++)
@@ -281,7 +281,7 @@ rb_bitarray_size(VALUE self)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    return SIZET2NUM(ba->bits);
+    return LONG2NUM(ba->bits);
 }
 
 
@@ -296,8 +296,8 @@ rb_bitarray_total_set(VALUE self)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    size_t count = total_set(ba);
-    return SIZET2NUM(count);
+    long count = total_set(ba);
+    return LONG2NUM(count);
 }
 
 
@@ -314,12 +314,12 @@ rb_bitarray_set_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    ptrdiff_t index = NUM2SSIZET(bit);
+    long index = NUM2LONG(bit);
 
     if (set_bit(ba, index)) {
         return self;
     } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
     }
 }
 
@@ -356,12 +356,12 @@ rb_bitarray_clear_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    ptrdiff_t index = NUM2SSIZET(bit);
+    long index = NUM2LONG(bit);
 
     if (clear_bit(ba, index)) {
         return self;
     } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
     }
 }
 
@@ -398,12 +398,12 @@ rb_bitarray_toggle_bit(VALUE self, VALUE bit)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    ptrdiff_t index = NUM2SSIZET(bit);
+    long index = NUM2LONG(bit);
 
     if (toggle_bit(ba, index)) {
         return self;
     } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
     }
 }
 
@@ -428,7 +428,7 @@ rb_bitarray_toggle_all_bits(VALUE self)
 
 /* Return an individual bit. */
 static VALUE
-rb_bitarray_get_bit(VALUE self, ptrdiff_t index)
+rb_bitarray_get_bit(VALUE self, long index)
 {
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
@@ -438,14 +438,14 @@ rb_bitarray_get_bit(VALUE self, ptrdiff_t index)
     if (bit_value >= 0) {
         return INT2NUM(bit_value);
     } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
     }
 }
 
 
 /* Create a new BitArray from a subsequence of x. */
 static VALUE
-rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
+rb_bitarray_subseq(VALUE x, long beg, long len)
 {
 
     struct bit_array *x_ba;
@@ -471,7 +471,7 @@ rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
     /* Create a new BitArray of the appropriate size. */
     VALUE y;
     y = rb_bitarray_alloc(rb_bitarray_class);
-    rb_bitarray_initialize(y, SSIZET2NUM(len));
+    rb_bitarray_initialize(y, LONG2NUM(len));
     /* If our length is 0, we can just return now. */
     if (len == 0) {
         return y;
@@ -480,7 +480,7 @@ rb_bitarray_subseq(VALUE x, ptrdiff_t beg, ptrdiff_t len)
     Data_Get_Struct(y, struct bit_array, y_ba);
 
     /* For each set bit in x[beg..len], set the corresponding bit in y. */
-    size_t x_index, y_index;
+    long x_index, y_index;
     for (x_index = beg, y_index = 0;
             x_index < beg + len;
             x_index++, y_index++)
@@ -513,8 +513,8 @@ rb_bitarray_bitref(int argc, VALUE *argv, VALUE self)
 
     /* Two arguments means we have a beginning and a  length */
     if (argc == 2) {
-        ptrdiff_t beg = NUM2SSIZET(argv[0]);
-        ptrdiff_t len = NUM2SSIZET(argv[1]);
+        long beg = NUM2LONG(argv[0]);
+        long len = NUM2LONG(argv[1]);
         return rb_bitarray_subseq(self, beg, len);
     } 
     
@@ -550,7 +550,7 @@ rb_bitarray_bitref(int argc, VALUE *argv, VALUE self)
             return rb_bitarray_subseq(self, beg, len);
     }
     
-    return rb_bitarray_get_bit(self, NUM2SSIZET(arg));
+    return rb_bitarray_get_bit(self, NUM2LONG(arg));
 }
 
 
@@ -570,14 +570,14 @@ rb_bitarray_assign_bit(VALUE self, VALUE bit, VALUE value)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    ptrdiff_t index = NUM2SSIZET(bit);
+    long index = NUM2LONG(bit);
     int bit_value = NUM2INT(value);
 
     int result = assign_bit(ba, index, bit_value);
     if (result == 1) {
         return value;
     } else if (result == 0) {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", (long)index);
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
     } else {
         rb_raise(rb_eRuntimeError, "bit value %d out of range", bit_value);
     }
@@ -596,10 +596,10 @@ rb_bitarray_inspect(VALUE self)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    size_t cstr_size = ba->bits + 1;
+    long cstr_size = ba->bits + 1;
     char cstr[cstr_size];
     
-    size_t i;
+    long i;
     for (i = 0; i < ba->bits; i++) {
         cstr[i] = get_bit(ba, i) + '0';
     }
@@ -629,7 +629,7 @@ rb_bitarray_each(VALUE self)
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    size_t i;
+    long i;
 
     RETURN_ENUMERATOR(self, 0, 0);
     for (i = 0; i < ba->bits; i++) {
