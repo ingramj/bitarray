@@ -2,13 +2,29 @@ A bit array class for Ruby, implemented as a C extension. Includes methods for
 setting and clearing individual bits, and all bits at once. Also has the
 standard array access methods, [] and []=, and it mixes in Enumerable.
 
+Example usage:
+
+    require 'bitarray'
+    bm = BitArray.new(16)
+    bm[5] = 1
+    bm.toggle_all_bits
+    puts bm
+
+
 The test/ directory has a unit test file. It also has a benchmark utility for
 comparison with Peter Cooper's pure Ruby BitField class.
 
-This extension has only been tested with Ruby 1.9.1 on Ubuntu, and probably
-won't compile for Ruby 1.8. Compatibility with Ruby 1.8 is planned.
+This library has been compiled and tested on:
+    
+    ruby 1.9.1p129 (2009-05-12 revision 23412) [i686-linux]
+    ruby 1.8.7 (2008-08-11 patchlevel 72) [alpha-netbsd]
 
-This library is available as a gem. Install it with
+If you have success using it on any other version/platform combinations, I'd
+like to know. Or if you have problems, I'd like to know that too. Report bugs
+at http://github.com/ingramj/bitarray/issues
+
+
+BitArray is available as a gem. Install it with
 
 sudo gem install ingramj-bitarray -s http://gems.github.com
 
