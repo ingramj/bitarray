@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{bitarray}
-  s.version = "0.4.0"
+  s.version = "0.4.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["James E. Ingram"]
@@ -21,7 +21,6 @@ Gem::Specification.new do |s|
      "Rakefile",
      "TODO",
      "VERSION",
-     "bitarray.gemspec",
      "ext/bitarray.c",
      "ext/extconf.rb",
      "test/bitfield.rb",
@@ -30,7 +29,7 @@ Gem::Specification.new do |s|
   ]
   s.has_rdoc = true
   s.homepage = %q{http://github.com/ingramj/bitarray}
-  s.rdoc_options = ["--charset=UTF-8", "--exclude", "ext/Makefile", "--title", "BitArray Documentation"]
+  s.rdoc_options = ["--charset=UTF-8", "--exclude=ext/Makefile", "--exclude=ext/extconf.rb", "--title", "BitArray Documentation"]
   s.require_paths = ["ext"]
   s.required_ruby_version = Gem::Requirement.new(">= 1.8.6")
   s.rubygems_version = %q{1.3.1}
