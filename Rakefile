@@ -1,3 +1,11 @@
+require 'rake/rdoctask'
+Rake::RDocTask.new do |rd|
+  rd.main = "README"
+  rd.rdoc_files.include("README", "LICENSE", "ext/*.c")
+  rd.title = "BitArray Documentation"
+  rd.rdoc_dir = "doc"
+end
+
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
@@ -14,7 +22,8 @@ EOF
     gem.require_paths = ["ext"]
     gem.extensions = ["ext/extconf.rb"]
     gem.required_ruby_version = ">= 1.8.6"
-    gem.rdoc_options << '--exclude' << 'ext/Makefile' << '--title' << 'BitArray Documentation'
+    gem.rdoc_options << '--exclude=ext/Makefile' << '--exclude=ext/extconf.rb'
+    gem.rdoc_options << '--title' << 'BitArray Documentation'
   end
 rescue LoadError
   puts "Jeweler not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
