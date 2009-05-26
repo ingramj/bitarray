@@ -21,6 +21,7 @@ Gem::Specification.new do |s|
      "Rakefile",
      "TODO",
      "VERSION",
+     "bitarray.gemspec",
      "ext/bitarray.c",
      "ext/extconf.rb",
      "test/bitfield.rb",
