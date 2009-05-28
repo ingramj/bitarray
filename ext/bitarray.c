@@ -22,7 +22,7 @@ struct bit_array {
 /* Bit Array manipulation functions. */
 
 /* Set the specified bit to 1. Return 1 on success, 0 on failure. */
-static int
+static inline int
 set_bit(struct bit_array *ba, long bit)
 {
     if (bit < 0) bit += ba->bits;
@@ -36,7 +36,7 @@ set_bit(struct bit_array *ba, long bit)
 
 
 /* Set all bits to 1. */
-static int
+static inline int
 set_all_bits(struct bit_array *ba)
 {
     memset(ba->array, 0xff, (ba->array_size * UINT_BYTES));
@@ -45,7 +45,7 @@ set_all_bits(struct bit_array *ba)
 
 
 /* Clear the specified bit to 0. Return 1 on success, 0 on failure. */
-static int
+static inline int
 clear_bit(struct bit_array *ba, long bit)
 {
     if (bit < 0) bit += ba->bits;
@@ -59,7 +59,7 @@ clear_bit(struct bit_array *ba, long bit)
 
 
 /* Clear all bits to 0. */
-static int
+static inline int
 clear_all_bits(struct bit_array *ba)
 {
     memset(ba->array, 0x00, (ba->array_size * UINT_BYTES));
@@ -68,7 +68,7 @@ clear_all_bits(struct bit_array *ba)
 
 
 /* Toggle the state of the specified bit. Return 1 on success, 0 on failure. */
-static int
+static inline int
 toggle_bit(struct bit_array *ba, long bit)
 {
     if (bit < 0) bit += ba->bits;
@@ -82,7 +82,7 @@ toggle_bit(struct bit_array *ba, long bit)
 
 
 /* Toggle the state of all bits. */
-static int
+static inline int
 toggle_all_bits(struct bit_array *ba)
 {
     long i;
@@ -95,7 +95,7 @@ toggle_all_bits(struct bit_array *ba)
 
 /* Assign the specified value to a bit. Return 1 on success, 0 on invalid bit
  * index, and -1 on invalid value. */
-static int
+static inline int
 assign_bit(struct bit_array *ba, long bit, int value)
 {
     if (value == 0) {
@@ -109,7 +109,7 @@ assign_bit(struct bit_array *ba, long bit, int value)
 
 
 /* Get the state of the specified bit. Return -1 on failure. */
-static int
+static inline int
 get_bit(struct bit_array *ba, long bit)
 {
     if (bit < 0) bit += ba->bits;
@@ -127,7 +127,7 @@ get_bit(struct bit_array *ba, long bit)
 
 
 /* Return the number of set bits in the array. */
-static long
+static inline long
 total_set(struct bit_array *ba)
 {
     /* This is basically the algorithm from K&R, with a running total for all
