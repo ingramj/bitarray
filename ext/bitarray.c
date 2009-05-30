@@ -611,6 +611,29 @@ rb_bitarray_inspect(VALUE self)
 
 
 /* call-seq:
+ *      bitarray.to_a           -> an_array
+ *
+ * Creates a Ruby Array from bitarray.
+ */
+static VALUE
+rb_bitarray_to_a(VALUE self)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    long array_size = ba->bits;
+    VALUE c_array[array_size];
+    
+    int i;
+    for (i = 0; i < array_size; i++) {
+        c_array[i] = INT2FIX(get_bit(ba, i));
+    }
+
+    return rb_ary_new4(array_size, c_array);
+}
+
+
+/* call-seq:
  *      bitarray.each {|bit| block }        -> bitarray
  *
  * Calls +block+ once for each bit in _bitarray_, passing that bit as a
@@ -671,6 +694,7 @@ Init_bitarray()
     rb_define_method(rb_bitarray_class, "[]", rb_bitarray_bitref, -1);
     rb_define_alias(rb_bitarray_class, "slice", "[]");
     rb_define_method(rb_bitarray_class, "[]=", rb_bitarray_assign_bit, 2);
+    rb_define_method(rb_bitarray_class, "to_a", rb_bitarray_to_a, 0);
     rb_define_method(rb_bitarray_class, "inspect", rb_bitarray_inspect, 0);
     rb_define_alias(rb_bitarray_class, "to_s", "inspect");
     rb_define_method(rb_bitarray_class, "each", rb_bitarray_each, 0);

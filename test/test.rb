@@ -133,5 +133,12 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba3 = ba2 + ba1
     assert_equal "111111100000000000000000000000000000000", ba3.to_s
   end
+
+  def test_to_a
+    ba = BitArray.new(16)
+    ba[1] = 1
+    ba[5] = 1
+    assert_equal [0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0], ba.to_a
+  end
 end
 

@@ -26,6 +26,10 @@ Benchmark.bm(28) { |bm|
   bm.report("BitField to_s")       { 10000.times { bf.to_s } }
   bm.report("BitArray to_s")       { 10000.times { ba.to_s } }
 
+  puts "---------------------------- To Array (10,000 iterations)"
+  bm.report("BitField to_a")       { 10000.times { bf.to_a } }
+  bm.report("BitArray to_a")       { 10000.times { ba.to_a } }
+
   puts "---------------------------- Total Set (100,000 iterations)"
   bf = BitField.new(256)
   ba = BitArray.new(256)
