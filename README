@@ -14,6 +14,8 @@ Example usage:
 The test/ directory has a unit test file. It also has a benchmark utility for
 comparison with Peter Cooper's pure Ruby BitField class.
 
+The examples/ directory has bloom filter dictionary-lookup demonstration.
+
 This library has been compiled and tested on:
     
     ruby 1.9.1p129 (2009-05-12 revision 23412) [i686-linux]  (Ubuntu from src)
