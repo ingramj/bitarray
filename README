@@ -9,6 +9,10 @@ Example usage:
     bm[5] = 1
     bm.toggle_all_bits
     puts bm
+    
+    bm = BitArray.new("10010110")
+    bm.toggle_bit 3
+    bm.clear_bit 0
 
 
 The test/ directory has a unit test file. It also has a benchmark utility for

@@ -6,6 +6,8 @@ Benchmark.bm(28) { |bm|
   puts "---------------------------- Object instantiation (10,000 iterations)"
   bm.report("BitField initialize") { 10000.times { BitField.new(256) } }
   bm.report("BitArray initialize") { 10000.times { BitArray.new(256) } }
+  s = "0"*256
+  bm.report("BitArray init from string") { 10000.times { BitArray.new(s) } }
 
   bf = BitField.new(256)
   ba = BitArray.new(256)

@@ -140,5 +140,14 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba[5] = 1
     assert_equal [0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0], ba.to_a
   end
+
+  def test_init_from_str
+    ba = BitArray.new("00011")
+    assert_equal "00011", ba.to_s
+    ba = BitArray.new("00011abcd")
+    assert_equal "00011", ba.to_s
+    ba = BitArray.new("abcd0101")
+    assert_equal "", ba.to_s
+  end
 end
 
