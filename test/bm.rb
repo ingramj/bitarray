@@ -8,6 +8,8 @@ Benchmark.bm(28) { |bm|
   bm.report("BitArray initialize") { 10000.times { BitArray.new(256) } }
   s = "0"*256
   bm.report("BitArray init from string") { 10000.times { BitArray.new(s) } }
+  a = [0]*256
+  bm.report("BitArray init from array")  { 10000.times { BitArray.new(a) } }
 
   bf = BitField.new(256)
   ba = BitArray.new(256)

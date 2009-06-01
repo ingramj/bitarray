@@ -1,4 +1,5 @@
-# Peter Cooper's BitField test file, modified for BitArray.
+# BitArray Unit Tests.
+# Originally modified from Peter Cooper's BitField test file.
 # http://snippets.dzone.com/posts/show/4234
 require "test/unit"
 require "bitarray"
@@ -148,6 +149,16 @@ class TestLibraryFileName < Test::Unit::TestCase
     assert_equal "00011", ba.to_s
     ba = BitArray.new("abcd0101")
     assert_equal "", ba.to_s
+  end
+
+
+  def test_init_from_array
+    ba = BitArray.new([0,1,1,1,0])
+    assert_equal "01110", ba.to_s
+    ba = BitArray.new([true, true, false, false, true])
+    assert_equal "11001", ba.to_s
+    ba = BitArray.new([nil, nil, :a, nil, [:b, :c]])
+    assert_equal "00101", ba.to_s
   end
 end
 

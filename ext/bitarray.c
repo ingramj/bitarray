@@ -222,33 +222,77 @@ rb_bitarray_from_string(VALUE self, VALUE arg)
 }
 
 
+/* Create a new BitArray from an Array. Called by rb_bitarray_initialize */
+static VALUE
+rb_bitarray_from_array(VALUE self, VALUE arg)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    ba->bits = RARRAY_LEN(arg);
+    ba->array_size = ((ba->bits - 1) / UINT_BITS) + 1;
+    ba->array = ruby_xmalloc(ba->array_size * UINT_BYTES);
+
+    VALUE e;
+    long i;
+    for (i = 0; i < ba->bits; i++) {
+        e = rb_ary_entry(arg, i);
+
+        switch (TYPE(e)) {
+            case T_FIXNUM:      /* fixnums and bignums treated the same. */
+            case T_BIGNUM:
+                NUM2LONG(e) == 0l ? clear_bit(ba, i) : set_bit(ba, i);
+                break;
+            case T_FALSE:       /* false and nil treated the same. */
+            case T_NIL:
+                clear_bit(ba, i);
+                break;
+            default:
+                set_bit(ba, i);
+        }
+    }
+
+    return self;
+}
+
+
 /* call-seq:
  *      BitArray.new(size)
  *      BitArray.new(string)
+ *      BitArray.new(array)
  *
  * When called with a size, creates a new BitArray of the specified size, with
- * all bits cleared. When called with a string, creates a new BitArray from the
- * string.
+ * all bits cleared. When called with a string or an array, creates a new
+ * BitArray from the argument.
  *
- * The string should consist of ones and zeroes. If there are any other
- * characters in the string, the first invalid character and all following
- * characters will be ignored.
+ * If a string is given, it should consist of ones and zeroes. If there are
+ * any other characters in the string, the first invalid character and all
+ * following characters will be ignored.
  *
- *   b = BitArray.new("10101010")       => "10101010"
- *   b = BitArray.new("1010abcd")       => "1010"
- *   b = BitArray.new("abcd")           => ""
+ *   b = BitArray.new("10101010")       => 10101010
+ *   b = BitArray.new("1010abcd")       => 1010
+ *   b = BitArray.new("abcd")           => 
+ *
+ * If an array is given, the BitArray is initialized from its elements using
+ * the following rules:
+ *
+ * 1. 0, false, or nil  => 0
+ * 2. anything else     => 1
+ *
+ * Note that the 0 is a number, not a string. "Anything else" means strings,
+ * symbols, non-zero numbers, subarrays, etc.
+ *
+ *   b = BitArray.new([0,0,0,1,1,0])            => 000110
+ *   b = BitArray.new([false, true, false])     => 010
+ *   b = BitArray.new([:a, :b, :c, [:d, :e]])   => 1111
  */
 static VALUE
 rb_bitarray_initialize(VALUE self, VALUE arg)
 {
-    /* TODO: add support for initializing from arrays, and factor out the
-     * different argument types to helper functions (rb_bitarray_from_string,
-     * rb_bitarray_from_array).
-     */
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
-
     if (TYPE(arg) == T_FIXNUM || TYPE(arg) == T_BIGNUM) {
+        struct bit_array *ba;
+        Data_Get_Struct(self, struct bit_array, ba);
+
         long bits = NUM2LONG(arg);
         if (bits <= 0) {
             ba->bits = 0;
@@ -264,8 +308,10 @@ rb_bitarray_initialize(VALUE self, VALUE arg)
 
     } else if (TYPE(arg) == T_STRING) {
         return rb_bitarray_from_string(self, arg);
+    } else if (TYPE(arg) == T_ARRAY) { 
+        return rb_bitarray_from_array(self, arg);
     } else {
-        rb_raise(rb_eArgError, "must be string or number");
+        rb_raise(rb_eArgError, "must be size, string, or array");
     }
 }
 
