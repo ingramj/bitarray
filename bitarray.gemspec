@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{bitarray}
-  s.version = "0.4.2"
+  s.version = "0.5.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["James E. Ingram"]
-  s.date = %q{2009-05-30}
+  s.date = %q{2009-06-01}
   s.description = %q{A bit array class for Ruby, implemented as a C extension. Includes methods for setting and clearing individual bits, and all bits at once. Also has the standard array access methods, [] and []=, and it mixes in Enumerable.}
   s.email = %q{ingramj@gmail.com}
   s.extensions = ["ext/extconf.rb"]
@@ -22,6 +22,8 @@ Gem::Specification.new do |s|
      "TODO",
      "VERSION",
      "bitarray.gemspec",
+     "examples/bloomfilter.rb",
+     "examples/boolnet.rb",
      "ext/bitarray.c",
      "ext/extconf.rb",
      "test/bitfield.rb",
@@ -38,7 +40,9 @@ Gem::Specification.new do |s|
   s.test_files = [
     "test/bitfield.rb",
      "test/test.rb",
-     "test/bm.rb"
+     "test/bm.rb",
+     "examples/bloomfilter.rb",
+     "examples/boolnet.rb"
   ]
 
   if s.respond_to? :specification_version then
