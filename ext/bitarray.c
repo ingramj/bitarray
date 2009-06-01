@@ -172,6 +172,56 @@ rb_bitarray_alloc(VALUE klass)
 }
 
 
+/* Create a new BitArray from a string. Called by rb_bitarray_initialize. */
+static VALUE
+rb_bitarray_from_string(VALUE self, VALUE arg)
+{
+    struct bit_array *ba;
+    Data_Get_Struct(self, struct bit_array, ba);
+
+    /* Extract a C-string from arg. */
+    long str_len = RSTRING_LEN(arg) + 1;
+    char cstr[str_len];
+    strncpy(cstr, StringValueCStr(arg), str_len);
+
+    /* If the string doesn't begin with a '1' or '0', return an empty
+     * BitArray.
+     */
+    if (cstr[0] != '0' && cstr[0] != '1') {
+        ba->bits = 0;
+        ba->array_size = 0;
+        return self;
+    }
+
+    /* Otherwise, loop through the string and truncate it at the first invalid
+     * character.
+     */
+    long i;
+    for (i = 0; i < str_len; i++) {
+        if (cstr[i] != '0' && cstr[i] != '1') {
+            cstr[i] = '\0';
+            break;
+        }
+    }
+
+    /* Setup the BitArray structure. */
+    ba->bits = strlen(cstr);
+    ba->array_size = ((ba->bits - 1) / UINT_BITS) + 1;
+    ba->array = ruby_xmalloc(ba->array_size * UINT_BYTES);
+
+    /* Initialize the bit array with the string. */
+    for (i = 0; i < ba->bits; i++) {
+        if (cstr[i] == '0') {
+            clear_bit(ba, i);
+        } else {
+            set_bit(ba, i);
+        }
+    }
+
+    return self;
+}
+
+
 /* call-seq:
  *      BitArray.new(size)
  *      BitArray.new(string)
@@ -191,63 +241,32 @@ rb_bitarray_alloc(VALUE klass)
 static VALUE
 rb_bitarray_initialize(VALUE self, VALUE arg)
 {
+    /* TODO: add support for initializing from arrays, and factor out the
+     * different argument types to helper functions (rb_bitarray_from_string,
+     * rb_bitarray_from_array).
+     */
     struct bit_array *ba;
     Data_Get_Struct(self, struct bit_array, ba);
 
-    long bits;
-    char *cstr = NULL;
-
     if (TYPE(arg) == T_FIXNUM || TYPE(arg) == T_BIGNUM) {
-        bits = NUM2LONG(arg);
+        long bits = NUM2LONG(arg);
         if (bits <= 0) {
             ba->bits = 0;
             ba->array_size = 0;
             return self;
         }
-    } else if (TYPE(arg) == T_STRING) {
-        /* Create a c-string from the ruby string. */
-        long cstr_length = RSTRING_LEN(arg) + 1;
-        cstr = ruby_xmalloc(cstr_length);
-        strncpy(cstr, StringValueCStr(arg), cstr_length);
+        
+        ba->bits = bits;
+        ba->array_size = ((bits - 1) / UINT_BITS) + 1;
+        ba->array = ruby_xcalloc(ba->array_size, UINT_BYTES);
 
-        /* If the first character isn't 1 or 0, just return now. */
-        if (*cstr != '0' && *cstr != '1') {
-            ba->bits = 0;
-            ba->array_size = 0;
-            return self;
-        }
-        /* Truncate the string after the first character that isn't 1 or 0. */
-        long i;
-        for (i = 0; i < cstr_length; i++) {
-            if (*(cstr+i) != '0' && *(cstr+i) != '1') {
-                *(cstr+i) = '\0';
-                break;
-            }
-        }
-        bits = strlen(cstr);
+        return self;
+
+    } else if (TYPE(arg) == T_STRING) {
+        return rb_bitarray_from_string(self, arg);
     } else {
         rb_raise(rb_eArgError, "must be string or number");
     }
-
-
-    long array_size = ((bits - 1) / UINT_BITS) + 1;
-
-    ba->bits = bits;
-    ba->array_size = array_size;
-    ba->array = ruby_xcalloc(array_size, UINT_BYTES);
-
-    /* If we initialized cstr, use it to setup ba. */
-    if (cstr) {
-        long i;
-        for (i = 0; i < strlen(cstr) + 1; i++){
-            if (*(cstr+i) == '1') {
-                set_bit(ba, i);
-            }
-        }
-        ruby_xfree(cstr);
-    }
-
-    return self;
 }
 
 
