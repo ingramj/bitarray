@@ -2,122 +2,125 @@
 #include <limits.h>
 #include <string.h>
 
-/* Bits are stored in an array of unsigned ints. We'll use a couple of defines
- * for getting the size of unsigned ints in bytes and bits.
- */
 #define UINT_BYTES (sizeof(unsigned int))
 #define UINT_BITS (UINT_BYTES * CHAR_BIT)
 
-/* bitmask macro for accessing a particular bit inside an array element. */
-#define bitmask(bit) (1 << (bit % UINT_BITS))
+#define bitmask(bit) (1 << ((bit) % UINT_BITS))
+#define uint_array_size(bits) (((bits) - 1) / UINT_BITS + 1)
+#define bitarray_size(ba) (ba->bits)
 
-/* Bit Array structure. */
-struct bit_array {
-    long bits;         /* Number of bits. */
-    long array_size;   /* Size of the storage array. */
+struct bitarray {
+    long bits;           /* Number of bits. */
+    long array_size;     /* Size of the storage array. */
     unsigned int *array; /* Array of unsigned ints, used for bit storage. */
 };
 
 
-/* Bit Array manipulation functions. */
+/* Low-level bit-manipulation functions.
+ * 
+ * These function are used by the Ruby interface functions to modify
+ * bitarray structures.
+ * 
+ * Functions that take an index will raise an IndexError if it is out of range.
+ * Negative indices count from the end of the array.
+ */
 
-/* Set the specified bit to 1. Return 1 on success, 0 on failure. */
-static inline int
-set_bit(struct bit_array *ba, long bit)
+
+/* This function is used by all of the bit-manipulation functions to check
+ * indices. It handles negative-index conversion and bounds checking.
+ */
+static inline long
+check_index(struct bitarray *ba, long index)
 {
-    if (bit < 0) bit += ba->bits;
-    if (bit >= ba->bits) {
-        return 0;
+    if (index < 0) index += ba->bits;
+    if (index >= ba->bits) {
+        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
     }
 
-    ba->array[bit / UINT_BITS] |= bitmask(bit);
-    return 1;
+    return index;
+}
+
+
+/* Set the specified bit to 1. */
+static inline void
+set_bit(struct bitarray *ba, long index)
+{
+    index = check_index(ba, index);
+    ba->array[index / UINT_BITS] |= bitmask(index);
 }
 
 
 /* Set all bits to 1. */
-static inline int
-set_all_bits(struct bit_array *ba)
+static inline void
+set_all_bits(struct bitarray *ba)
 {
     memset(ba->array, 0xff, (ba->array_size * UINT_BYTES));
-    return 1;
 }
 
 
-/* Clear the specified bit to 0. Return 1 on success, 0 on failure. */
-static inline int
-clear_bit(struct bit_array *ba, long bit)
+/* Clear the specified bit to 0. */
+static inline void
+clear_bit(struct bitarray *ba, long index)
 {
-    if (bit < 0) bit += ba->bits;
-    if (bit >= ba->bits) {
-        return 0;
-    }
-
-    ba->array[bit / UINT_BITS] &= ~bitmask(bit);
-    return 1;
+    index = check_index(ba, index);
+    ba->array[index / UINT_BITS] &= ~bitmask(index);
 }
 
 
 /* Clear all bits to 0. */
-static inline int
-clear_all_bits(struct bit_array *ba)
+static inline void
+clear_all_bits(struct bitarray *ba)
 {
     memset(ba->array, 0x00, (ba->array_size * UINT_BYTES));
-    return 1;
 }
 
 
-/* Toggle the state of the specified bit. Return 1 on success, 0 on failure. */
-static inline int
-toggle_bit(struct bit_array *ba, long bit)
+/* Toggle the state of the specified bit. */
+static inline void
+toggle_bit(struct bitarray *ba, long index)
 {
-    if (bit < 0) bit += ba->bits;
-    if (bit >= ba->bits) {
-        return 0;
-    }
-
-    ba->array[bit / UINT_BITS] ^= bitmask(bit);
-    return 1;
+    index = check_index(ba, index);
+    ba->array[index / UINT_BITS] ^= bitmask(index);
 }
 
 
 /* Toggle the state of all bits. */
-static inline int
-toggle_all_bits(struct bit_array *ba)
+static inline void 
+toggle_all_bits(struct bitarray *ba)
 {
     long i;
     for(i = 0; i < ba->array_size; i++) {
         ba->array[i] ^= ~0ul;     /* ~0 = all bits set. */
     }
-    return 1;
 }
 
 
-/* Assign the specified value to a bit. Return 1 on success, 0 on invalid bit
- * index, and -1 on invalid value. */
-static inline int
-assign_bit(struct bit_array *ba, long bit, int value)
+/* Assign the specified value to a bit. If the specified value is invalid,
+ * raises an ArgumentError.
+ */ 
+static inline void
+assign_bit(struct bitarray *ba, long index, int value)
 {
     if (value == 0) {
-        return clear_bit(ba, bit);
+        clear_bit(ba, index);
     } else if (value == 1) {
-        return set_bit(ba, bit);
+        set_bit(ba, index);
     } else {
-        return -1;
+        rb_raise(rb_eArgError, "bit value %d out of range", value);
     }
 }
 
 
-/* Get the state of the specified bit. Return -1 on failure. */
+/* Get the state of the specified bit. */
 static inline int
-get_bit(struct bit_array *ba, long bit)
+get_bit(struct bitarray *ba, long index)
 {
-    if (bit < 0) bit += ba->bits;
-    if (bit >= ba->bits) {
-        return -1;
-    }
+    index = check_index(ba, index);
 
-    unsigned int b = (ba->array[bit / UINT_BITS] & bitmask(bit));
+    /* We could shift the bit down, but this is easier. We need an unsigned int
+     * to prevent overflow.
+     */
+    unsigned int b = (ba->array[index / UINT_BITS] & bitmask(index));
     if (b > 0) {
         return 1;
     } else {
@@ -128,7 +131,7 @@ get_bit(struct bit_array *ba, long bit)
 
 /* Return the number of set bits in the array. */
 static inline long
-total_set(struct bit_array *ba)
+total_set(struct bitarray *ba)
 {
     /* This is basically the algorithm from K&R, with a running total for all
      * array elements. There are faster algorithms, but this one is simpler to
@@ -148,13 +151,110 @@ total_set(struct bit_array *ba)
 }
 
 
-/* Ruby Interface Functions. */
+/* Initialize an already-allocated bitarray structure. The array is initialized
+ * to all zeros.
+ */
+static inline void
+initialize_bitarray(struct bitarray *ba, long size)
+{
+    if (size < 0) {
+        ba->bits = 0;
+        ba->array_size = 0;
+        ba->array = NULL;
+        return;
+    }
 
+    ba->bits = size;
+    ba->array_size = uint_array_size(size);
+    ba->array = ruby_xcalloc(ba->array_size, UINT_BYTES);
+}
+
+
+/* Initialize an already-allocated bitarray structure as a copy of another
+ * bitarray structure.
+ */
+static inline void
+initialize_bitarray_copy(struct bitarray *new_ba, struct bitarray *orig_ba)
+{
+    new_ba->bits = orig_ba->bits;
+    new_ba->array_size = orig_ba->array_size;
+    new_ba->array = ruby_xmalloc(new_ba->array_size * UINT_BYTES);
+
+    memcpy(new_ba->array, orig_ba->array, new_ba->array_size * UINT_BYTES);
+}
+
+
+/* Initialize an already-allocated bitarray structure as the concatenation of
+ * two other bitarrays structures.
+ */
+static void
+initialize_bitarray_concat(struct bitarray *new_ba, struct bitarray *x_ba,
+        struct bitarray *y_ba)
+{
+    new_ba->bits = x_ba->bits + y_ba->bits;
+    new_ba->array_size = uint_array_size(new_ba->bits);
+    new_ba->array = ruby_xmalloc(new_ba->array_size * UINT_BYTES);
+
+
+    /* For each bit set in x_ba and y_ba, set the corresponding bit in new_ba.
+     *
+     * First, copy x_ba->array to the beginning of new_ba->array.
+     */
+    memcpy(new_ba->array, x_ba->array, x_ba->array_size * UINT_BYTES);
+
+    /* Then, if x_ba->bits is a multiple of UINT_BITS, we can just copy
+     * y_ba->array onto the end of new_ba->array.
+     * 
+     * Otherwise, we need to go through y_ba->array bit-by-bit and set the
+     * appropriate bits in new_ba->array.
+     */
+    if ((x_ba->bits % UINT_BITS) == 0) {
+        unsigned int *start = new_ba->array + x_ba->array_size;
+        memcpy(start, y_ba->array, y_ba->array_size * UINT_BYTES);
+    } else {
+        long y_index, new_index;
+        for (y_index = 0, new_index = x_ba->bits;
+                y_index < y_ba->bits;
+                y_index++, new_index++)
+        {
+            if (get_bit(y_ba, y_index) == 1) {
+                set_bit(new_ba, new_index);
+            } else {
+                clear_bit(new_ba, new_index);
+            }
+        }
+    }
+
+}
+
+
+
+/* Ruby Interface Functions.
+ * 
+ * These functions put a Ruby face on top of the lower-level functions. With
+ * very few exceptions, they should not access the bitarray structs' members
+ * directly.
+ *
+ * "bitarray" refers to the C structure. "BitArray" refers to the Ruby class.
+ *
+ * All publicly-accessible functions (those with an rb_define_method call in
+ * Init_bitarray) should have RDoc comment headers.
+ *
+ * When in doubt, see how array.c does things.
+ */
+
+
+/* Our BitArray class. This is initialized in Init_bitarray, but we declare it
+ * here because a few functions need it.
+ */
 static VALUE rb_bitarray_class;
 
 
+/* This gets called when a BitArray is garbage collected. It frees the memory
+ * used by the bitarray struct.
+ */
 static void
-rb_bitarray_free(struct bit_array *ba)
+rb_bitarray_free(struct bitarray *ba)
 {
     if (ba && ba->array) {
         ruby_xfree(ba->array);
@@ -163,97 +263,26 @@ rb_bitarray_free(struct bit_array *ba)
 }
 
 
+/* This function is called by BitArray.new to allocate a new BitArray.
+ * Initialization is done in a seperate function.
+ * 
+ * This function can be called directly with BitArray.allocate, but that is not
+ * very useful.
+ */
 static VALUE
 rb_bitarray_alloc(VALUE klass)
 {
-    struct bit_array *ba;
-    return Data_Make_Struct(rb_bitarray_class, struct bit_array, NULL,
+    struct bitarray *ba;
+    return Data_Make_Struct(rb_bitarray_class, struct bitarray, NULL,
             rb_bitarray_free, ba);
 }
 
 
-/* Create a new BitArray from a string. Called by rb_bitarray_initialize. */
-static VALUE
-rb_bitarray_from_string(VALUE self, VALUE arg)
-{
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
-
-    /* Extract a C-string from arg. */
-    long str_len = RSTRING_LEN(arg) + 1;
-    char cstr[str_len];
-    strncpy(cstr, StringValueCStr(arg), str_len);
-
-    /* If the string doesn't begin with a '1' or '0', return an empty
-     * BitArray.
-     */
-    if (cstr[0] != '0' && cstr[0] != '1') {
-        ba->bits = 0;
-        ba->array_size = 0;
-        return self;
-    }
-
-    /* Otherwise, loop through the string and truncate it at the first invalid
-     * character.
-     */
-    long i;
-    for (i = 0; i < str_len; i++) {
-        if (cstr[i] != '0' && cstr[i] != '1') {
-            cstr[i] = '\0';
-            break;
-        }
-    }
-
-    /* Setup the BitArray structure. */
-    ba->bits = strlen(cstr);
-    ba->array_size = ((ba->bits - 1) / UINT_BITS) + 1;
-    ba->array = ruby_xmalloc(ba->array_size * UINT_BYTES);
-
-    /* Initialize the bit array with the string. */
-    for (i = 0; i < ba->bits; i++) {
-        if (cstr[i] == '0') {
-            clear_bit(ba, i);
-        } else {
-            set_bit(ba, i);
-        }
-    }
-
-    return self;
-}
-
-
-/* Create a new BitArray from an Array. Called by rb_bitarray_initialize */
-static VALUE
-rb_bitarray_from_array(VALUE self, VALUE arg)
-{
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
-
-    ba->bits = RARRAY_LEN(arg);
-    ba->array_size = ((ba->bits - 1) / UINT_BITS) + 1;
-    ba->array = ruby_xmalloc(ba->array_size * UINT_BYTES);
-
-    VALUE e;
-    long i;
-    for (i = 0; i < ba->bits; i++) {
-        e = rb_ary_entry(arg, i);
-
-        switch (TYPE(e)) {
-            case T_FIXNUM:      /* fixnums and bignums treated the same. */
-            case T_BIGNUM:
-                NUM2LONG(e) == 0l ? clear_bit(ba, i) : set_bit(ba, i);
-                break;
-            case T_FALSE:       /* false and nil treated the same. */
-            case T_NIL:
-                clear_bit(ba, i);
-                break;
-            default:
-                set_bit(ba, i);
-        }
-    }
-
-    return self;
-}
+/* Initialization helper-function prototypes. These functions are defined after
+ * rb_bitarray_initialize.
+ */
+static VALUE rb_bitarray_from_string(VALUE self, VALUE string);
+static VALUE rb_bitarray_from_array(VALUE self, VALUE array);
 
 
 /* call-seq:
@@ -290,20 +319,12 @@ static VALUE
 rb_bitarray_initialize(VALUE self, VALUE arg)
 {
     if (TYPE(arg) == T_FIXNUM || TYPE(arg) == T_BIGNUM) {
-        struct bit_array *ba;
-        Data_Get_Struct(self, struct bit_array, ba);
+        struct bitarray *ba;
+        Data_Get_Struct(self, struct bitarray, ba);
 
-        long bits = NUM2LONG(arg);
-        if (bits <= 0) {
-            ba->bits = 0;
-            ba->array_size = 0;
-            return self;
-        }
-        
-        ba->bits = bits;
-        ba->array_size = ((bits - 1) / UINT_BITS) + 1;
-        ba->array = ruby_xcalloc(ba->array_size, UINT_BYTES);
-
+        long size = NUM2LONG(arg);
+        initialize_bitarray(ba, size);
+    
         return self;
 
     } else if (TYPE(arg) == T_STRING) {
@@ -316,6 +337,86 @@ rb_bitarray_initialize(VALUE self, VALUE arg)
 }
 
 
+/* Create a new BitArray from a string. Called by rb_bitarray_initialize. */
+static VALUE
+rb_bitarray_from_string(VALUE self, VALUE string)
+{
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
+
+    /* Extract a C-string from arg. */
+    long str_len = RSTRING_LEN(string) + 1;
+    char cstr[str_len];
+    strncpy(cstr, StringValueCStr(string), str_len);
+
+    /* If the string doesn't begin with a '1' or '0', return an empty
+     * BitArray.
+     */
+    if (cstr[0] != '0' && cstr[0] != '1') {
+        initialize_bitarray(ba, 0);
+        return self;
+    }
+
+    /* Otherwise, loop through the string and truncate it at the first invalid
+     * character.
+     */
+    long i;
+    for (i = 0; i < str_len; i++) {
+        if (cstr[i] != '0' && cstr[i] != '1') {
+            cstr[i] = '\0';
+            break;
+        }
+    }
+
+    /* Setup the BitArray structure. */
+    initialize_bitarray(ba, strlen(cstr));
+
+    /* Initialize the bit array with the string. */
+    for (i = 0; i < ba->bits; i++) {
+        if (cstr[i] == '0') {
+            clear_bit(ba, i);
+        } else {
+            set_bit(ba, i);
+        }
+    }
+
+    return self;
+}
+
+
+/* Create a new BitArray from an Array. Called by rb_bitarray_initialize */
+static VALUE
+rb_bitarray_from_array(VALUE self, VALUE array)
+{
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
+
+    long size = RARRAY_LEN(array);
+    initialize_bitarray(ba, size);
+
+    VALUE e;
+    long i;
+    for (i = 0; i < size; i++) {
+        e = rb_ary_entry(array, i);
+
+        switch (TYPE(e)) {
+            case T_FIXNUM:      /* fixnums and bignums treated the same. */
+            case T_BIGNUM:
+                NUM2LONG(e) == 0l ? clear_bit(ba, i) : set_bit(ba, i);
+                break;
+            case T_FALSE:       /* false and nil treated the same. */
+            case T_NIL:
+                clear_bit(ba, i);
+                break;
+            default:
+                set_bit(ba, i);
+        }
+    }
+
+    return self;
+}
+
+
 /* call-seq:
  *      bitarray.clone          -> a_bitarray
  *      bitarray.dup            -> a_bitarray
@@ -325,15 +426,11 @@ rb_bitarray_initialize(VALUE self, VALUE arg)
 static VALUE
 rb_bitarray_initialize_copy(VALUE self, VALUE orig)
 {
-    struct bit_array *new_ba, *orig_ba;
-    Data_Get_Struct(self, struct bit_array, new_ba);
-    Data_Get_Struct(orig, struct bit_array, orig_ba);
+    struct bitarray *new_ba, *orig_ba;
+    Data_Get_Struct(self, struct bitarray, new_ba);
+    Data_Get_Struct(orig, struct bitarray, orig_ba);
 
-    new_ba->bits = orig_ba->bits;
-    new_ba->array_size = orig_ba->array_size;
-    new_ba->array = ruby_xcalloc(new_ba->array_size, UINT_BYTES);
-
-    memcpy(new_ba->array, orig_ba->array, (new_ba->array_size * UINT_BYTES));
+    initialize_bitarray_copy(new_ba, orig_ba);
 
     return self;
 }
@@ -348,40 +445,18 @@ rb_bitarray_initialize_copy(VALUE self, VALUE orig)
 static VALUE
 rb_bitarray_concat(VALUE x, VALUE y)
 {
-    /* Get the bit_arrays from x and y */
-    struct bit_array *x_ba, *y_ba;
-    Data_Get_Struct(x, struct bit_array, x_ba);
-    Data_Get_Struct(y, struct bit_array, y_ba);
+    /* Get the bitarrays from x and y */
+    struct bitarray *x_ba, *y_ba;
+    Data_Get_Struct(x, struct bitarray, x_ba);
+    Data_Get_Struct(y, struct bitarray, y_ba);
 
-    /* Create a new BitArray, and its bit_array */
-    VALUE z;
-    struct bit_array *z_ba;
-    z = rb_bitarray_alloc(rb_bitarray_class);
-    rb_bitarray_initialize(z, LONG2NUM(x_ba->bits + y_ba->bits));
-    Data_Get_Struct(z, struct bit_array, z_ba);
+    /* Create a new BitArray, and its bitarray structure*/
+    VALUE z = rb_bitarray_alloc(rb_bitarray_class);
+    struct bitarray *z_ba;
+    Data_Get_Struct(z, struct bitarray, z_ba);
 
-    /* For each bit set in x and y, set the corresponding bit in z. First, copy
-     * x to the beginning of z. Then, if x->bits is a multiple of UINT_BITS, we
-     * can just copy y onto the end of z. Otherwise, we need to go through y
-     * bit-by-bit and set the appropriate bits in z.
-     */
-    memcpy(z_ba->array, x_ba->array, (x_ba->array_size * UINT_BYTES));
-    if ((x_ba->bits % UINT_BITS) == 0) {
-        unsigned int *start = z_ba->array + x_ba->array_size;
-        memcpy(start, y_ba->array, (y_ba->array_size * UINT_BYTES));
-    } else {
-        long y_index, z_index;
-        for (y_index = 0, z_index = x_ba->bits;
-                y_index < y_ba->bits;
-                y_index++, z_index++)
-        {
-            if (get_bit(y_ba, y_index) == 1) {
-                set_bit(z_ba, z_index);
-            } else {
-                clear_bit(z_ba, z_index);
-            }
-        }
-    }
+    initialize_bitarray_concat(z_ba, x_ba, y_ba);
+
     return z;
 }
 
@@ -395,10 +470,10 @@ rb_bitarray_concat(VALUE x, VALUE y)
 static VALUE
 rb_bitarray_size(VALUE self)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    return LONG2NUM(ba->bits);
+    return LONG2NUM(bitarray_size(ba));
 }
 
 
@@ -410,11 +485,10 @@ rb_bitarray_size(VALUE self)
 static VALUE
 rb_bitarray_total_set(VALUE self)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    long count = total_set(ba);
-    return LONG2NUM(count);
+    return LONG2NUM(total_set(ba));
 }
 
 
@@ -426,18 +500,13 @@ rb_bitarray_total_set(VALUE self)
  * +IndexError+ is raised.
  */
 static VALUE
-rb_bitarray_set_bit(VALUE self, VALUE bit)
+rb_bitarray_set_bit(VALUE self, VALUE index)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
-
-    long index = NUM2LONG(bit);
-
-    if (set_bit(ba, index)) {
-        return self;
-    } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
-    }
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
+    
+    set_bit(ba, NUM2LONG(index));
+    return self;
 }
 
 
@@ -449,14 +518,11 @@ rb_bitarray_set_bit(VALUE self, VALUE bit)
 static VALUE
 rb_bitarray_set_all_bits(VALUE self)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    if(set_all_bits(ba)) {
-        return self;
-    } else {
-        rb_bug("BitArray#set_all_bits failed. This should not occur.");
-    }
+    set_all_bits(ba);
+    return self;
 }
 
 
@@ -468,18 +534,13 @@ rb_bitarray_set_all_bits(VALUE self)
  * +IndexError+ is raised.
  */
 static VALUE
-rb_bitarray_clear_bit(VALUE self, VALUE bit)
+rb_bitarray_clear_bit(VALUE self, VALUE index)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    long index = NUM2LONG(bit);
-
-    if (clear_bit(ba, index)) {
-        return self;
-    } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
-    }
+    clear_bit(ba, NUM2LONG(index));
+    return self;
 }
 
 
@@ -491,14 +552,11 @@ rb_bitarray_clear_bit(VALUE self, VALUE bit)
 static VALUE
 rb_bitarray_clear_all_bits(VALUE self)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    if(clear_all_bits(ba)) {
-        return self;
-    } else {
-        rb_bug("BitArray#clear_all_bits failed. This should not occur.");
-    }
+    clear_all_bits(ba);
+    return self;
 }
 
 
@@ -510,18 +568,13 @@ rb_bitarray_clear_all_bits(VALUE self)
  * +IndexError+ is raised.
  */
 static VALUE
-rb_bitarray_toggle_bit(VALUE self, VALUE bit)
+rb_bitarray_toggle_bit(VALUE self, VALUE index)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    long index = NUM2LONG(bit);
-
-    if (toggle_bit(ba, index)) {
-        return self;
-    } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
-    }
+    toggle_bit(ba, NUM2LONG(index));
+    return self;
 }
 
 
@@ -533,82 +586,19 @@ rb_bitarray_toggle_bit(VALUE self, VALUE bit)
 static VALUE
 rb_bitarray_toggle_all_bits(VALUE self)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    if(toggle_all_bits(ba)) {
-        return self;
-    } else {
-        rb_bug("BitArray#clear_all_bits failed. This should not occur.");
-    }
-}
-
-/* Return an individual bit. */
-static VALUE
-rb_bitarray_get_bit(VALUE self, long index)
-{
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
-
-    int bit_value = get_bit(ba, index);
-
-    if (bit_value >= 0) {
-        return INT2NUM(bit_value);
-    } else {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
-    }
+    toggle_all_bits(ba);
+    return self;
 }
 
 
-/* Create a new BitArray from a subsequence of x. */
-static VALUE
-rb_bitarray_subseq(VALUE x, long beg, long len)
-{
-
-    struct bit_array *x_ba;
-    Data_Get_Struct(x, struct bit_array, x_ba);
-
-    /* Quick exit - a negative length, or a beginning past the end of the
-     * array returns nil.
-     */
-    if (beg < 0) {
-        beg += x_ba->bits;
-    }
-    if (len < 0 || beg > x_ba->bits) {
-        return Qnil;
-    }
-
-    /* Make sure that we don't try getting more bits than x has. We handle this
-     * the same way as Array; if beg+len is past the end of x, shorten len.
-     */
-    if (x_ba->bits <  len ||  x_ba->bits < (beg + len)) {
-        len = x_ba->bits - beg;
-    }
-
-    /* Create a new BitArray of the appropriate size. */
-    VALUE y;
-    y = rb_bitarray_alloc(rb_bitarray_class);
-    rb_bitarray_initialize(y, LONG2NUM(len));
-    /* If our length is 0, we can just return now. */
-    if (len == 0) {
-        return y;
-    }
-    struct bit_array *y_ba;
-    Data_Get_Struct(y, struct bit_array, y_ba);
-
-    /* For each set bit in x[beg..len], set the corresponding bit in y. */
-    long x_index, y_index;
-    for (x_index = beg, y_index = 0;
-            x_index < beg + len;
-            x_index++, y_index++)
-    {
-        if (get_bit(x_ba, x_index) == 1) {
-            set_bit(y_ba, y_index);
-        }
-    }
-
-    return y;
-}
+/* Bit-reference helper-function prototypes. These are defined after
+ * rb_bitarray_bitref.
+ */
+static inline VALUE rb_bitarray_get_bit(VALUE self, long index);
+static VALUE rb_bitarray_subseq(VALUE self, long beg, long len);
 
 
 /* call-seq:
@@ -622,7 +612,6 @@ rb_bitarray_subseq(VALUE x, long beg, long len)
  * _index_ is greater than the capacity of _bitarray_, an +IndexError+ is
  * raised.
  */
-
 static VALUE
 rb_bitarray_bitref(int argc, VALUE *argv, VALUE self)
 {
@@ -650,8 +639,8 @@ rb_bitarray_bitref(int argc, VALUE *argv, VALUE self)
         return rb_bitarray_get_bit(self, FIX2LONG(arg));
     }
 
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
     /* Next we see if arg is a range. rb_range_beg_len is defined in range.c
      * If arg is not a range, it returns Qfalse. If arg is a range, but it
      * refers to invalid indices, it returns Qnil. Otherwise, it sets beg and
@@ -671,6 +660,67 @@ rb_bitarray_bitref(int argc, VALUE *argv, VALUE self)
 }
 
 
+/* Return an individual bit. */
+static inline VALUE
+rb_bitarray_get_bit(VALUE self, long index)
+{
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
+
+    return INT2NUM(get_bit(ba, index));
+}
+
+
+/* Create a new BitArray from a subsequence of x. */
+static VALUE
+rb_bitarray_subseq(VALUE x, long beg, long len)
+{
+
+    struct bitarray *x_ba;
+    Data_Get_Struct(x, struct bitarray, x_ba);
+
+    /* Quick exit - a negative length, or a beginning past the end of the
+     * array returns nil.
+     */
+    if (beg < 0) {
+        beg += bitarray_size(x_ba);
+    }
+    if (len < 0 || beg > bitarray_size(x_ba)) {
+        return Qnil;
+    }
+
+    /* Make sure that we don't try getting more bits than x has. We handle this
+     * the same way as Array; if beg+len is past the end of x, shorten len.
+     */
+    if (bitarray_size(x_ba) <  len ||  bitarray_size(x_ba) < (beg + len)) {
+        len = bitarray_size(x_ba) - beg;
+    }
+
+    /* Create a new BitArray of the appropriate size. */
+    VALUE y = rb_bitarray_alloc(rb_bitarray_class);
+    rb_bitarray_initialize(y, LONG2NUM(len));
+    /* If our length is 0, we can just return now. */
+    if (len == 0) {
+        return y;
+    }
+    struct bitarray *y_ba;
+    Data_Get_Struct(y, struct bitarray, y_ba);
+
+    /* For each set bit in x[beg..len], set the corresponding bit in y. */
+    long x_index, y_index;
+    for (x_index = beg, y_index = 0;
+            x_index < beg + len;
+            x_index++, y_index++)
+    {
+        if (get_bit(x_ba, x_index) == 1) {
+            set_bit(y_ba, y_index);
+        }
+    }
+
+    return y;
+}
+
+
 /* call-seq:
  *      bitarray[index] = value     -> value
  *
@@ -682,22 +732,13 @@ rb_bitarray_bitref(int argc, VALUE *argv, VALUE self)
  * raised.
  */
 static VALUE
-rb_bitarray_assign_bit(VALUE self, VALUE bit, VALUE value)
+rb_bitarray_assign_bit(VALUE self, VALUE index, VALUE value)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    long index = NUM2LONG(bit);
-    int bit_value = NUM2INT(value);
-
-    int result = assign_bit(ba, index, bit_value);
-    if (result == 1) {
-        return value;
-    } else if (result == 0) {
-        rb_raise(rb_eIndexError, "index %ld out of bit array", index);
-    } else {
-        rb_raise(rb_eRuntimeError, "bit value %d out of range", bit_value);
-    }
+    assign_bit(ba, NUM2LONG(index), NUM2INT(value));
+    return value; 
 }
 
 
@@ -710,17 +751,17 @@ rb_bitarray_assign_bit(VALUE self, VALUE bit, VALUE value)
 static VALUE
 rb_bitarray_inspect(VALUE self)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    long cstr_size = ba->bits + 1;
+    long cstr_size = bitarray_size(ba) + 1;
     char cstr[cstr_size];
     
     long i;
-    for (i = 0; i < ba->bits; i++) {
+    for (i = 0; i < bitarray_size(ba); i++) {
         cstr[i] = get_bit(ba, i) + '0';
     }
-    cstr[ba->bits] = '\0';
+    cstr[cstr_size - 1] = '\0';
 
     VALUE str = rb_str_new2(cstr);
     return str;
@@ -735,10 +776,10 @@ rb_bitarray_inspect(VALUE self)
 static VALUE
 rb_bitarray_to_a(VALUE self)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
-    long array_size = ba->bits;
+    long array_size = bitarray_size(ba);
     VALUE c_array[array_size];
     
     int i;
@@ -766,13 +807,13 @@ rb_bitarray_to_a(VALUE self)
 static VALUE
 rb_bitarray_each(VALUE self)
 {
-    struct bit_array *ba;
-    Data_Get_Struct(self, struct bit_array, ba);
+    struct bitarray *ba;
+    Data_Get_Struct(self, struct bitarray, ba);
 
     long i;
 
     RETURN_ENUMERATOR(self, 0, 0);
-    for (i = 0; i < ba->bits; i++) {
+    for (i = 0; i < bitarray_size(ba); i++) {
         int bit_value = get_bit(ba, i);
         rb_yield(INT2NUM(bit_value));
     }
