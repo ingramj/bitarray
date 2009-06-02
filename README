@@ -15,8 +15,7 @@ Example usage:
     bm.clear_bit 0
 
 
-The test/ directory has a unit test file. It also has a benchmark utility for
-comparison with Peter Cooper's pure Ruby BitField class.
+The test/ directory has a unit test file, and benchmarking utility.
 
 The examples/ directory has bloom filter dictionary-lookup demonstration.
 
@@ -43,9 +42,8 @@ See the LICENSE file for copyright and license information.
 
 Some inspiration was taken from Peter Cooper's BitField class, and various Open
 Source bitarray implementations found online, but this implementation contains
-only original code, except for test/bitfield.rb, which is Peter Cooper's
-BitField class, and test/test.rb, which was modified from the BitField test
-code.
+only original code, except for some parts for test.rb, which were modified from
+BitField's unit test file.
 
 BitField: http://snippets.dzone.com/posts/show/4234
 

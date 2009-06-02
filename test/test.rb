@@ -33,14 +33,16 @@ class TestLibraryFileName < Test::Unit::TestCase
   
   def test_multiple_setting
     1.upto(999) do |pos|
-      2.times { @public_ba[pos] = 1 }
+      @public_ba[pos] = 1 
+      @public_ba[pos] = 1
       assert_equal 1, @public_ba[pos]
     end
   end
 
   def test_multiple_unsetting
     1.upto(999) do |pos|
-      2.times { @public_ba[pos] = 0 }
+      @public_ba[pos] = 0
+      @public_ba[pos] = 0
       assert_equal 0, @public_ba[pos]
     end
   end

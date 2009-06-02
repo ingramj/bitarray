@@ -1,6 +1,7 @@
 #include "ruby.h"
 #include <limits.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define UINT_BYTES (sizeof(unsigned int))
 #define UINT_BITS (UINT_BYTES * CHAR_BIT)
@@ -166,7 +167,7 @@ initialize_bitarray(struct bitarray *ba, long size)
 
     ba->bits = size;
     ba->array_size = uint_array_size(size);
-    ba->array = ruby_xcalloc(ba->array_size, UINT_BYTES);
+    ba->array = calloc(ba->array_size, UINT_BYTES);
 }
 
 
@@ -178,7 +179,7 @@ initialize_bitarray_copy(struct bitarray *new_ba, struct bitarray *orig_ba)
 {
     new_ba->bits = orig_ba->bits;
     new_ba->array_size = orig_ba->array_size;
-    new_ba->array = ruby_xmalloc(new_ba->array_size * UINT_BYTES);
+    new_ba->array = malloc(new_ba->array_size * UINT_BYTES);
 
     memcpy(new_ba->array, orig_ba->array, new_ba->array_size * UINT_BYTES);
 }
@@ -193,7 +194,7 @@ initialize_bitarray_concat(struct bitarray *new_ba, struct bitarray *x_ba,
 {
     new_ba->bits = x_ba->bits + y_ba->bits;
     new_ba->array_size = uint_array_size(new_ba->bits);
-    new_ba->array = ruby_xmalloc(new_ba->array_size * UINT_BYTES);
+    new_ba->array = malloc(new_ba->array_size * UINT_BYTES);
 
 
     /* For each bit set in x_ba and y_ba, set the corresponding bit in new_ba.
@@ -257,7 +258,7 @@ static void
 rb_bitarray_free(struct bitarray *ba)
 {
     if (ba && ba->array) {
-        ruby_xfree(ba->array);
+        free(ba->array);
     }
     ruby_xfree(ba);
 }
@@ -322,8 +323,7 @@ rb_bitarray_initialize(VALUE self, VALUE arg)
         struct bitarray *ba;
         Data_Get_Struct(self, struct bitarray, ba);
 
-        long size = NUM2LONG(arg);
-        initialize_bitarray(ba, size);
+        initialize_bitarray(ba, NUM2LONG(arg));
     
         return self;
 
