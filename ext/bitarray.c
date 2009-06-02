@@ -1,13 +1,22 @@
 #include "ruby.h"
 #include <limits.h>
 #include <string.h>
-#include <stdlib.h>
 
 #define UINT_BYTES (sizeof(unsigned int))
 #define UINT_BITS (UINT_BYTES * CHAR_BIT)
 
+/* Accessing a particular bit within a word. */
 #define bitmask(bit) (1 << ((bit) % UINT_BITS))
-#define uint_array_size(bits) (((bits) - 1) / UINT_BITS + 1)
+
+/* Determining how many unsigned ints we need to store a given number of bits.
+ * We check if (bits - 1) is negative because the C standard helpfully
+ * specifies that in an arithmetic expression "... if either operand is
+ * unsigned long int, the other is converted to unsigned long int", causing
+ * large amounts of hilarity when one of the operands is negative.
+ */
+#define uint_array_size(bits) (bits <= 0 ? 0 : (((bits) - 1) / UINT_BITS + 1))
+
+/* Get the number of bits stored in a bitarray. */
 #define bitarray_size(ba) (ba->bits)
 
 struct bitarray {
@@ -158,7 +167,7 @@ total_set(struct bitarray *ba)
 static inline void
 initialize_bitarray(struct bitarray *ba, long size)
 {
-    if (size < 0) {
+    if (size <= 0) {
         ba->bits = 0;
         ba->array_size = 0;
         ba->array = NULL;
@@ -167,7 +176,7 @@ initialize_bitarray(struct bitarray *ba, long size)
 
     ba->bits = size;
     ba->array_size = uint_array_size(size);
-    ba->array = calloc(ba->array_size, UINT_BYTES);
+    ba->array = ruby_xcalloc(ba->array_size, UINT_BYTES);
 }
 
 
@@ -179,7 +188,7 @@ initialize_bitarray_copy(struct bitarray *new_ba, struct bitarray *orig_ba)
 {
     new_ba->bits = orig_ba->bits;
     new_ba->array_size = orig_ba->array_size;
-    new_ba->array = malloc(new_ba->array_size * UINT_BYTES);
+    new_ba->array = ruby_xmalloc2(new_ba->array_size, UINT_BYTES);
 
     memcpy(new_ba->array, orig_ba->array, new_ba->array_size * UINT_BYTES);
 }
@@ -194,7 +203,7 @@ initialize_bitarray_concat(struct bitarray *new_ba, struct bitarray *x_ba,
 {
     new_ba->bits = x_ba->bits + y_ba->bits;
     new_ba->array_size = uint_array_size(new_ba->bits);
-    new_ba->array = malloc(new_ba->array_size * UINT_BYTES);
+    new_ba->array = ruby_xmalloc2(new_ba->array_size, UINT_BYTES);
 
 
     /* For each bit set in x_ba and y_ba, set the corresponding bit in new_ba.
@@ -258,7 +267,7 @@ static void
 rb_bitarray_free(struct bitarray *ba)
 {
     if (ba && ba->array) {
-        free(ba->array);
+        ruby_xfree(ba->array);
     }
     ruby_xfree(ba);
 }

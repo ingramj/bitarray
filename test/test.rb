@@ -137,6 +137,13 @@ class TestLibraryFileName < Test::Unit::TestCase
     assert_equal "111111100000000000000000000000000000000", ba3.to_s
   end
 
+  def test_concatenation3
+    ba1 = BitArray.new(0)
+    ba2 = BitArray.new(0)
+    ba3 = ba1 + ba2
+    assert_equal "", ba3.to_s
+  end
+
   def test_to_a
     ba = BitArray.new(16)
     ba[1] = 1
@@ -151,6 +158,8 @@ class TestLibraryFileName < Test::Unit::TestCase
     assert_equal "00011", ba.to_s
     ba = BitArray.new("abcd0101")
     assert_equal "", ba.to_s
+    ba = BitArray.new("")
+    assert_equal "", ba.to_s
   end
 
 
@@ -161,6 +170,8 @@ class TestLibraryFileName < Test::Unit::TestCase
     assert_equal "11001", ba.to_s
     ba = BitArray.new([nil, nil, :a, nil, [:b, :c]])
     assert_equal "00101", ba.to_s
+    ba = BitArray.new([])
+    assert_equal "", ba.to_s
   end
 end
 
