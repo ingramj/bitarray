@@ -100,7 +100,7 @@ toggle_all_bits(struct bitarray *ba)
 {
     long i;
     for(i = 0; i < ba->array_size; i++) {
-        ba->array[i] ^= ~0ul;     /* ~0 = all bits set. */
+        ba->array[i] ^= UINT_MAX; 
     }
 }
 
