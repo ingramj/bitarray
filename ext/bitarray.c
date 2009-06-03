@@ -100,7 +100,7 @@ toggle_all_bits(struct bitarray *ba)
 {
     long i;
     for(i = 0; i < ba->array_size; i++) {
-        ba->array[i] ^= ~0ul;     /* ~0 = all bits set. */
+        ba->array[i] ^= UINT_MAX; 
     }
 }
 
@@ -195,7 +195,7 @@ initialize_bitarray_copy(struct bitarray *new_ba, struct bitarray *orig_ba)
 
 
 /* Initialize an already-allocated bitarray structure as the concatenation of
- * two other bitarrays structures.
+ * two other bitarray structures.
  */
 static void
 initialize_bitarray_concat(struct bitarray *new_ba, struct bitarray *x_ba,
@@ -233,6 +233,52 @@ initialize_bitarray_concat(struct bitarray *new_ba, struct bitarray *x_ba,
                 clear_bit(new_ba, new_index);
             }
         }
+    }
+
+}
+
+
+/* Initialize an already-allocated bitarray structure as the intersection of
+ * two other bitarray structures. The new bitarray will be the same length as
+ * the smaller of the two original bitarrays.
+ */
+static void
+initialize_bitarray_intersect(struct bitarray *new_ba, struct bitarray *x_ba,
+        struct bitarray *y_ba)
+{
+    struct bitarray *shorter = ((x_ba->bits < y_ba->bits) ? x_ba : y_ba);
+
+    new_ba->bits = shorter->bits;
+    new_ba->array_size = shorter->array_size;
+    new_ba->array = ruby_xmalloc2(new_ba->array_size, UINT_BYTES);
+
+    long i;
+    for (i = 0; i < new_ba->array_size; i++) {
+        new_ba->array[i] = x_ba->array[i] & y_ba->array[i];
+    }
+}
+
+
+/* Initialize an already-allocated bitarray structure as the union of two other
+ * bitarray structures. The new bitarray will be the same length as the larger
+ * of the two original bitarrays.
+ */
+static void
+initialize_bitarray_union(struct bitarray *new_ba, struct bitarray *x_ba,
+        struct bitarray *y_ba)
+{
+    struct bitarray *longer = ((x_ba->bits > y_ba->bits) ? x_ba : y_ba);
+    struct bitarray *shorter = ((longer == x_ba) ? y_ba : x_ba);
+    initialize_bitarray_copy(new_ba, longer);
+
+    long i;
+    for (i = 0; i < shorter->array_size - 1; i++) {
+        new_ba->array[i] = new_ba->array[i] | shorter->array[i];
+    }
+
+    long start = ((shorter->array_size - 1) * UINT_BITS);
+    for (i = start; i < shorter->bits; i++) {
+        assign_bit(new_ba, i, get_bit(longer, i) | get_bit(shorter, i));
     }
 
 }
@@ -465,6 +511,53 @@ rb_bitarray_concat(VALUE x, VALUE y)
     Data_Get_Struct(z, struct bitarray, z_ba);
 
     initialize_bitarray_concat(z_ba, x_ba, y_ba);
+
+    return z;
+}
+
+
+/* call-seq:
+ *      bitarray & other_bitarray       -> a_bitarray
+ *
+ * Intersection---Return a new BitArray from the intersection of the two
+ * BitArrays. The new BitArray will have the same length as the shorter of the
+ * two originals.
+ */
+static VALUE
+rb_bitarray_intersect(VALUE x, VALUE y)
+{
+    struct bitarray *x_ba, *y_ba;
+    Data_Get_Struct(x, struct bitarray, x_ba);
+    Data_Get_Struct(y, struct bitarray, y_ba);
+
+    VALUE z = rb_bitarray_alloc(rb_bitarray_class);
+    struct bitarray *z_ba;
+    Data_Get_Struct(z, struct bitarray, z_ba);
+
+    initialize_bitarray_intersect(z_ba, x_ba, y_ba);
+
+    return z;
+}
+
+
+/* call-seq:
+ *      bitarray | other_bitarray       -> a_bitarray
+ *
+ * Union---Return a new BitArray from the union of the two BitArrays. The new
+ * BitArray will have the same length as the longer of the two originals.
+ */
+static VALUE
+rb_bitarray_union(VALUE x, VALUE y)
+{
+    struct bitarray *x_ba, *y_ba;
+    Data_Get_Struct(x, struct bitarray, x_ba);
+    Data_Get_Struct(y, struct bitarray, y_ba);
+
+    VALUE z = rb_bitarray_alloc(rb_bitarray_class);
+    struct bitarray *z_ba;
+    Data_Get_Struct(z, struct bitarray, z_ba);
+
+    initialize_bitarray_union(z_ba, x_ba, y_ba);
 
     return z;
 }
@@ -845,6 +938,8 @@ Init_bitarray()
     rb_define_method(rb_bitarray_class, "initialize_copy",
             rb_bitarray_initialize_copy, 1);
     rb_define_method(rb_bitarray_class, "+", rb_bitarray_concat, 1);
+    rb_define_method(rb_bitarray_class, "&", rb_bitarray_intersect, 1);
+    rb_define_method(rb_bitarray_class, "|", rb_bitarray_union, 1);
     rb_define_method(rb_bitarray_class, "size", rb_bitarray_size, 0);
     rb_define_alias(rb_bitarray_class, "length", "size");
     rb_define_method(rb_bitarray_class, "total_set", rb_bitarray_total_set, 0);

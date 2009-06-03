@@ -162,7 +162,6 @@ class TestLibraryFileName < Test::Unit::TestCase
     assert_equal "", ba.to_s
   end
 
-
   def test_init_from_array
     ba = BitArray.new([0,1,1,1,0])
     assert_equal "01110", ba.to_s
@@ -173,5 +172,44 @@ class TestLibraryFileName < Test::Unit::TestCase
     ba = BitArray.new([])
     assert_equal "", ba.to_s
   end
+
+  def test_intersection
+    ba1 = BitArray.new(11)
+    ba2 = BitArray.new(16)
+    6.times {|i| ba1.set_bit(i * 2) }
+    ba2.set_all_bits
+    ba3 = ba1 & ba2
+    assert_equal 11, ba3.size
+    assert_equal "10101010101", ba3.to_s
+  end
+
+  def test_intersection2
+    ba1 = BitArray.new(34)
+    ba2 = BitArray.new(28)
+    ba1.set_all_bits
+    14.times {|i| ba2.set_bit(i * 2) }
+    ba3 = ba1 & ba2
+    assert_equal 28, ba3.size
+    assert_equal "1010101010101010101010101010", ba3.to_s
+  end
+
+  def test_union
+    ba1 = BitArray.new(11)
+    ba2 = BitArray.new(16)
+    ba1.set_all_bits
+    ba3 = ba1 | ba2
+    assert_equal 16, ba3.size
+    assert_equal "1111111111100000", ba3.to_s
+  end
+  
+  def test_union2
+    ba1 = BitArray.new(34)
+    ba2 = BitArray.new(28)
+    ba2.set_all_bits
+    ba3 = ba1 | ba2
+    assert_equal 34, ba3.size
+    assert_equal "1111111111111111111111111111000000", ba3.to_s
+  end
+
 end
 
