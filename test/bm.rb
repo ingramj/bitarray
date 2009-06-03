@@ -33,5 +33,10 @@ Benchmark.bm(28) { |bm|
   ba2 = BitArray.new(240)
   ba2.set_all_bits
   bm.report("BitArray + (240, all set)") { 10000.times { ba2 + ba2 } }
+  ba = BitArray.new(256)
+  ba2 = BitArray.new(256)
+  ba2.set_all_bits
+  bm.report("BitArray union")     { 10000.times { ba | ba2 } }
+  bm.report("BitArray intersect") { 10000.times { ba & ba2 } }
 }
 
