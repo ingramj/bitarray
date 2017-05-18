@@ -37,7 +37,7 @@ class BloomFilter
   # We generate as many hash values as needed by using the technique described
   # by Kirsch and Mitzenmacher[1].
   #
-  # [1] http://www.eecs.harvard.edu/~kirsch/pubs/bbbf/esa06.pdf
+  # [1] https://www.eecs.harvard.edu/~michaelm/postscripts/tr-02-05.pdf
   def hash(input)
     h1 = input.hash.abs % @size
     h2 = Digest::SHA1.hexdigest(input).to_i(16) % @size
